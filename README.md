@@ -193,7 +193,7 @@ MCP tools: `remote_pending`, `remote_approve`, `remote_deny`, `remote_say`.
 
 - `stop` sends **one SIGINT** to the worker process. The turn stops, the worker exits, and the server **archives the session**. It is not an Esc: the session ENDS. Unarchive it in the Claude app to continue, or start a new one.
 - That is why `stop` needs `--yes`. From another machine it also needs ssh to that machine.
-- **Approvals cannot be given from outside.** `send` delivers peer messages only. A session waiting on a permission prompt stays waiting until someone approves it in the app or at the host.
+- `send` delivers a peer message only: it cannot answer a permission prompt. To answer one from another machine use `pending` and then `approve` or `deny`, or `attach` (it asks Allow? [y/n]); they post the same answer the Claude app posts.
 
 ## Recording
 
@@ -269,6 +269,7 @@ curl -sN -H "Authorization: Bearer $TOKEN" "http://127.0.0.1:3790/recordings/<id
 
 ## Limits
 
+- The session API these verbs use (`/v1/code/sessions/<id>/events`, `events/stream`) is the one Claude Code's own clients use, but Anthropic does not document it. It can change without notice, and remote-sessions may break when it does.
 - `read` and `events` are paged reads of the events API. `stream` and `attach` are live over `events/stream`, but message by message, not token by token. The recordings SSE route and the player follow a cast file as it grows, line by line.
 - Token-by-token streaming exists only for Claude running in VMs you run (where the pane itself is recorded). For a Remote Control session on a host, a recording is built from events or the transcript after the fact, or from the pane if the session runs in a recorded tmux pane.
 - `cast` needs the transcript uuid, and the transcript on the host that ran the session.
