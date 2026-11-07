@@ -1,8 +1,10 @@
 # remote-sessions
 
-**Install this to record your Claude Code sessions for proof.** remote-sessions records local tmux panes and Tart VMs live, and cloud and Remote Control sessions from their events (polled, not token-streamed), and serves the recordings through its recordings API as `.cast`, `.mp4` and `.gif`. It is free and MIT. Pro, the hosted part (retention, search, sharing), is the in-app purchase on top; it is not on sale yet. Cloud and Remote Control sessions are recorded from their polled events, not streamed token by token.
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Release](https://img.shields.io/github/v/release/ramene/remote-sessions?sort=semver&label=release)](https://github.com/ramene/remote-sessions/releases) [![Homebrew](https://img.shields.io/badge/homebrew-ramene%2Ftap-orange?logo=homebrew)](https://github.com/ramene/homebrew-tap) [![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-d97757)](#install) [![Rust](https://img.shields.io/badge/rust-2021-dea584?logo=rust)](Cargo.toml) [![Platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20Linux-lightgrey)](#install)
 
-Drive Claude Code **Remote Control** sessions that run on your own machines, from a terminal or from another Claude Code session. Verbs: `serve`, `list`, `send`, `events` (read), `stop`, `cast` (record) and `recordings` (list, start, stop, serve).
+**Records your Claude Code sessions.** remote-sessions records local tmux panes and Tart VMs live, and cloud and Remote Control sessions from their event stream (message by message, not token by token), and serves the recordings through its recordings API as `.cast`, `.mp4` and `.gif`. It is free and MIT.
+
+Drive Claude Code **Remote Control** sessions that run on your own machines, from a terminal or from another Claude Code session. Verbs: `serve`, `list`, `attach`, `say`, `send`, `read`, `events`, `stream`, `pending`, `approve`, `deny`, `interrupt`, `mode`, `stop`, `cast` (record) and `recordings` (list, start, stop, serve).
 
 Sibling of [cloud-sessions](https://github.com/ramene/cloud-sessions): same authors, same license (MIT), separate mod..
 
@@ -19,6 +21,7 @@ Sibling of [cloud-sessions](https://github.com/ramene/cloud-sessions): same auth
 - [Limits](#limits)
 - [Security model](#security-model)
 - [License](#license)
+- [Contributing](#contributing)
 
 ## What it is, and how it differs from cloud-sessions
 
@@ -289,3 +292,7 @@ curl -sN -H "Authorization: Bearer $TOKEN" "http://127.0.0.1:3790/recordings/<id
 ## License
 
 MIT. Copyright (c) 2026 the cloud-sessions contributors. See `LICENSE`. The vendored asciinema-player 3.10.0 is Apache-2.0; its license and NOTICE are in `crates/remote-sessions-cli/vendor/asciinema-player/`.
+
+## Contributing
+
+Issues and pull requests are welcome. Build, test and style commands, the layout, and the rules for changes (JSON contract, explicit write actions, no tokens in output, placeholder-only examples) are in [CONTRIBUTING.md](CONTRIBUTING.md). Report security issues privately through GitHub's **Security → Report a vulnerability**, not in a public issue.
