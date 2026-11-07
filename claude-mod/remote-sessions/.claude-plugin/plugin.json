@@ -1,0 +1,17 @@
+{
+  "name": "remote-sessions",
+  "version": "0.2.2",
+  "description": "Serve, list, read, send into and stop Claude Code Remote Control sessions on your own machines, from any Claude Code session.",
+  "license": "MIT",
+  "author": {
+    "name": "the cloud-sessions contributors"
+  },
+  "keywords": [
+    "remote",
+    "remote-control",
+    "sessions",
+    "claude-code"
+  ],
+  "homepage": "https://github.com/ramene/remote-sessions",
+  "repository": "https://github.com/ramene/remote-sessions"
+}

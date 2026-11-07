@@ -1,0 +1,648 @@
+{
+ "data": [
+  {
+   "event_id": "00000000-0000-4000-8000-000000000003",
+   "event_type": "result",
+   "created_at": "2024-01-02T20:23:19.652185Z",
+   "sequence_num": "23",
+   "source": "worker",
+   "payload": {
+    "api_error_status": null,
+    "duration_api_ms": 25609,
+    "duration_ms": 27254,
+    "is_error": false,
+    "message_normalization_detail": {
+     "after_ms": 0,
+     "before_ms": 0,
+     "images_ms": 1,
+     "messages": 12,
+     "normalize_ms": 1,
+     "other_ms": 0,
+     "post_process_ms": 0,
+     "wire_messages": 2
+    },
+    "num_turns": 3,
+    "origin": {
+     "fireReason": "manual",
+     "kind": "task-notification",
+     "subkind": "scheduled-trigger"
+    },
+    "process_anon_mib_result": 148,
+    "process_anon_mib_turn_start": 162,
+    "process_cpu_ms_streaming": 420,
+    "process_cpu_ms_turn": 1246,
+    "process_peak_rss_mib": 265,
+    "process_rss_mib_result": 241,
+    "process_rss_mib_turn_start": 241,
+    "process_start_tuning": 0,
+    "process_turn_index": 0,
+    "process_turn_states": {
+     "after_last_request": {
+      "cpu_ms": 16,
+      "entries": 1,
+      "wall_ms": 36
+     },
+     "before_first_request": {
+      "cpu_ms": 286,
+      "entries": 1,
+      "wall_ms": 257
+     },
+     "between_requests": {
+      "cpu_ms": 87,
+      "entries": 2,
+      "wall_ms": 79
+     },
+     "first_event_wait": {
+      "cpu_ms": 356,
+      "entries": 3,
+      "wall_ms": 12009
+     },
+     "main_stream": {
+      "cpu_ms": 420,
+      "entries": 3,
+      "wall_ms": 13578
+     },
+     "tool": {
+      "cpu_ms": 81,
+      "entries": 2,
+      "wall_ms": 1295
+     }
+    },
+    "process_wall_ms_streaming": 13578,
+    "process_wall_ms_turn": 27254,
+    "queued_turn_count": 0,
+    "request_build_detail": {
+     "cache_break_record_ms": 1,
+     "headers_ms": 1,
+     "other_ms": 1,
+     "plans_ms": 1,
+     "record_attempt_ms": 0,
+     "records_ms": 0,
+     "retry_setup_ms": 0,
+     "sent_build_cache_breakpoints_ms": 1,
+     "sent_build_ms": 2,
+     "sent_build_safety_context_ms": 0,
+     "sent_build_surrogate_scan_ms": 0,
+     "system_ms": 1
+    },
+    "request_sent_wall_ms": 1793996572560,
+    "result": "Example result text.",
+    "result_index": 0,
+    "safety_stops": 0,
+    "session_id": "00000000-0000-4000-8000-000000000004",
+    "stop_reason": "end_turn",
+    "subagent_stats": {
+     "by_type": {},
+     "completed": 0,
+     "failed": 0,
+     "killed": {
+      "parent": 0,
+      "system": 0,
+      "user": 0
+     },
+     "max_depth": 0,
+     "refused": {
+      "budget": 0,
+      "concurrency_limit": 0,
+      "depth_limit": 0
+     },
+     "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+     },
+     "spawned": 0,
+     "spawned_by_subagents": 0,
+     "started_in_background": 0
+    },
+    "subtype": "success",
+    "terminal_reason": "completed",
+    "time_origin_ms": 1793996571284.6194,
+    "time_to_request_cpu_ms": 287,
+    "time_to_request_from_spawn_ms": 1285,
+    "time_to_request_loop_lag_ms": 31,
+    "time_to_request_major_faults": 71,
+    "time_to_request_ms": 258,
+    "time_to_request_phases_ms": {
+     "auto_mode_context_wait": 94,
+     "autocompact": 2,
+     "client_creation": 2,
+     "conversation_append": 1,
+     "engine_pickup": 1,
+     "init_frame_send": 5,
+     "init_message": 4,
+     "input_attachments": 21,
+     "input_hooks": 2,
+     "loop_entry": 4,
+     "message_normalization": 2,
+     "message_prep": 1,
+     "model_config_wait": 0,
+     "model_gates": 0,
+     "other": 5,
+     "process_user_input": 3,
+     "query_setup": 7,
+     "request_announcements": 6,
+     "request_build": 7,
+     "resume_other": 0,
+     "system_prompt": 64,
+     "tool_pool_refresh": 2,
+     "tool_schema_build": 23,
+     "transcript_persist": 2
+    },
+    "tool_schema_build_detail": {
+     "after_ms": 0,
+     "betas_ms": 0,
+     "new_schemas": 21,
+     "other_ms": 0,
+     "placement_ms": 1,
+     "render_ms": 21,
+     "tools": 21,
+     "waits_ms": 1
+    },
+    "total_cost_usd": 0.1553181,
+    "turn_start_phases_ms": {
+     "after_arm": 1,
+     "commit": 1,
+     "engine_setup": 1,
+     "entry_joins": 208,
+     "mcp_prewait": 4,
+     "other": 0,
+     "sdk_mcp_update": 1,
+     "session_start_wait": 1,
+     "tool_reread": 1,
+     "turn_gate": 1
+    },
+    "turn_start_resume_kind": "none",
+    "turn_started_wall_ms": 1793996572303,
+    "type": "result",
+    "user_message_uuid": "00000000-0000-4000-8000-000000000005",
+    "user_message_uuids": [
+     "00000000-0000-4000-8000-000000000005"
+    ],
+    "uuid": "00000000-0000-4000-8000-000000000003",
+    "warm_spare_claimed": false
+   }
+  },
+  {
+   "event_id": "00000000-0000-4000-8000-000000000006",
+   "event_type": "assistant",
+   "created_at": "2024-01-02T20:23:01.503530Z",
+   "sequence_num": "19",
+   "source": "worker",
+   "payload": {
+    "message": {
+     "content": [
+      {
+       "text": "tmux is present, so I'll write the script and run the test.",
+       "type": "text"
+      }
+     ],
+     "model": "claude-sonnet-5-5",
+     "role": "assistant",
+     "type": "message"
+    },
+    "parent_tool_use_id": null,
+    "request_id": "req_011CgnJGFiSVZB5YcRLPYy4R",
+    "session_id": "00000000-0000-4000-8000-000000000004",
+    "timestamp": "2024-01-02T20:23:01.437Z",
+    "type": "assistant",
+    "uuid": "00000000-0000-4000-8000-000000000006"
+   }
+  },
+  {
+   "event_id": "00000000-0000-4000-8000-000000000007",
+   "event_type": "user",
+   "created_at": "2024-01-02T20:23:00.106114Z",
+   "sequence_num": "18",
+   "source": "worker",
+   "payload": {
+    "message": {
+     "content": [
+      {
+       "content": "example tool output",
+       "is_error": false,
+       "tool_use_id": "toolu_01MLdHjQw5ivrKSVhRsomEPK",
+       "type": "tool_result"
+      }
+     ],
+     "role": "user"
+    },
+    "parent_tool_use_id": null,
+    "session_id": "00000000-0000-4000-8000-000000000004",
+    "timestamp": "2024-01-02T20:23:00.048Z",
+    "type": "user",
+    "uuid": "00000000-0000-4000-8000-000000000007"
+   }
+  },
+  {
+   "event_id": "00000000-0000-4000-8000-000000000008",
+   "event_type": "rate_limit_event",
+   "created_at": "2024-01-02T20:22:59.966066Z",
+   "sequence_num": "17",
+   "source": "worker",
+   "payload": {
+    "rate_limit_info": {
+     "isUsingOverage": false,
+     "overageResetsAt": 1796083200,
+     "overageStatus": "allowed",
+     "rateLimitType": "seven_day",
+     "resetsAt": 1794474000,
+     "status": "allowed",
+     "unifiedWindows": {
+      "seven_day": {
+       "resetsAt": 1794474000,
+       "status": "allowed",
+       "utilization": 0.08
+      }
+     }
+    },
+    "session_id": "00000000-0000-4000-8000-000000000004",
+    "type": "rate_limit_event",
+    "uuid": "00000000-0000-4000-8000-000000000008"
+   }
+  },
+  {
+   "event_id": "00000000-0000-4000-8000-000000000009",
+   "event_type": "system",
+   "created_at": "2024-01-02T20:22:59.374576Z",
+   "sequence_num": "15",
+   "source": "worker",
+   "payload": {
+    "session_id": "00000000-0000-4000-8000-000000000004",
+    "status": "checking",
+    "subtype": "permission_check_status",
+    "tool_use_id": "toolu_01MLdHjQw5ivrKSVhRsomEPK",
+    "type": "system",
+    "uuid": "00000000-0000-4000-8000-000000000009"
+   }
+  },
+  {
+   "event_id": "00000000-0000-4000-8000-000000000010",
+   "event_type": "assistant",
+   "created_at": "2024-01-02T20:22:55.398024Z",
+   "sequence_num": "14",
+   "source": "worker",
+   "payload": {
+    "message": {
+     "content": [
+      {
+       "caller": {
+        "type": "direct"
+       },
+       "id": "toolu_01MLdHjQw5ivrKSVhRsomEPK",
+       "input": {
+        "command": "echo \"uname: $(uname -sr)\"; echo \"CLAUDE_CODE_REMOTE=[$CLAUDE_CODE_REMOTE]\"; echo \"virt: $(systemd-detect-virt 2>&1 || true)\"; echo \"tmux: $(command -v tmux || echo absent)\"; env | cut -d= -f1 | grep -E '^(CLAUDE|CCR)' "
+       },
+       "name": "Bash",
+       "type": "tool_use"
+      }
+     ],
+     "model": "claude-sonnet-5-5",
+     "role": "assistant",
+     "type": "message"
+    },
+    "parent_tool_use_id": null,
+    "request_id": "req_011CgnJFhZApR95xkJGjBWUP",
+    "session_id": "00000000-0000-4000-8000-000000000004",
+    "timestamp": "2024-01-02T20:22:55.281Z",
+    "type": "assistant",
+    "user_message_uuid": "00000000-0000-4000-8000-000000000005",
+    "user_message_uuids": [
+     "00000000-0000-4000-8000-000000000005"
+    ],
+    "uuid": "00000000-0000-4000-8000-000000000010"
+   }
+  },
+  {
+   "event_id": "00000000-0000-4000-8000-000000000011",
+   "event_type": "system",
+   "created_at": "2024-01-02T20:22:52.469825Z",
+   "sequence_num": "13",
+   "source": "worker",
+   "payload": {
+    "additional_directories": [],
+    "analytics_disabled": false,
+    "apiKeySource": "none",
+    "claude_code_version": "2.1.319",
+    "cwd": "/home/user/example-project",
+    "messaging_socket_path": "/tmp/cc-socks/182.sock",
+    "model": "claude-sonnet-5-5",
+    "original_cwd": "/home/user/example-project",
+    "output_style": "default",
+    "per_turn_effort_active": true,
+    "permissionMode": "auto",
+    "product_feedback_disabled": false,
+    "scratchpad_path": "/tmp/claude-0/-home-user-example-project/00000000-0000-4000-8000-000000000004/scratchpad",
+    "session_id": "00000000-0000-4000-8000-000000000004",
+    "startup_timing": {
+     "cli_trial_keys": 0,
+     "entrypoint": "remote_trigger",
+     "flag_fetch_kick": "settings_pending_empty",
+     "flag_fetch_kick_judged_at_ms": 243,
+     "hooks_init_source": "startup",
+     "kick_on_warm_cache": false,
+     "phase_start_ms": {
+      "agent_proxy_init_ms": 209,
+      "agent_proxy_inputs_ms": 210,
+      "agent_proxy_relay_up_ms": 229,
+      "agent_proxy_trust_write_ms": 226,
+      "first_message_handle_ms": 801,
+      "first_message_read_from_spawn_ms": -10,
+      "first_message_read_ms": 0,
+      "grove_check_ms": 608,
+      "growthbook_init_ms": 460,
+      "headless_post_load_ms": 746,
+      "headless_prologue_ms": 600,
+      "hooks_init_ms": 745,
+      "init_emit_ms": 1118,
+      "initial_messages_load_ms": 625,
+      "input_ready_from_spawn_ms": -10,
+      "input_ready_ms": 0,
+      "mcp_client_module_load_ms": 645,
+      "mcp_config_wait_ms": 579,
+      "mcp_connect_ms": 591,
+      "mcp_policy_settings_wait_ms": 263,
+      "mcp_prewait_ms": 1010,
+      "model_catalog_decision_ms": 575,
+      "node_boot_ms": 0,
+      "permission_context_ms": 414,
+      "plugin_state_refresh_inline_ms": 986,
+      "policy_limits_await_ms": 401,
+      "pre_action_client_data_url_ms": 242,
+      "pre_action_init_ms": 169,
+      "pre_action_managed_settings_ms": 244,
+      "pre_action_mdm_keychain_ms": 161,
+      "pre_action_migrations_ms": 243,
+      "pre_action_ms": 161,
+      "print_import_ms": 593,
+      "prompt_submit_hooks_ms": 1087,
+      "qe_plugin_skills_load_ms": 1116,
+      "qe_system_prompt_ms": 1020,
+      "resume_deserialize_ms": 737,
+      "resume_hydrate_fetch_ms": 617,
+      "resume_hydrate_ms": 627,
+      "resume_live_check_ms": 736,
+      "resume_worker_init_join_ms": 627,
+      "sdk_mcp_update_ms": 801,
+      "settings_load_ms": 156,
+      "setup_file_watcher_ms": 454,
+      "setup_hooks_snapshot_ms": 454,
+      "setup_import_ms": 428,
+      "setup_ms": 433,
+      "setup_release_notes_ms": 455,
+      "setup_uds_dir_ms": 434,
+      "setup_uds_listen_ms": 448,
+      "setup_uds_messaging_ms": 432,
+      "setup_uds_publish_ms": 450,
+      "skills_load_ms": 432,
+      "skills_sync_commands_refresh_ms": 978,
+      "skills_sync_wait_ms": 802,
+      "spawn_to_exec_ms": -10,
+      "sse_connect_ms": 616,
+      "tools_commands_load_ms": 561,
+      "worker_init_ms": 613
+     },
+     "phases": {
+      "agent_proxy_init_ms": 31,
+      "agent_proxy_inputs_ms": 15,
+      "agent_proxy_relay_up_ms": 4,
+      "agent_proxy_trust_write_ms": 3,
+      "first_message_handle_cpu_ms": 87,
+      "first_message_handle_loop_lag_ms": 7,
+      "first_message_handle_ms": 208,
+      "first_message_read_from_spawn_ms": 810,
+      "first_message_read_ms": 801,
+      "grove_check_ms": 0,
+      "growthbook_init_ms": 96,
+      "headless_post_load_ms": 6,
+      "headless_prologue_ms": 25,
+      "hooks_init_ms": 1,
+      "init_emit_ms": 2,
+      "initial_messages_load_ms": 121,
+      "input_ready_from_spawn_ms": 779,
+      "input_ready_ms": 769,
+      "mcp_client_module_load_ms": 6,
+      "mcp_config_load_ms": 2,
+      "mcp_config_wait_ms": 5,
+      "mcp_connect_ms": 1,
+      "mcp_policy_settings_wait_ms": 138,
+      "mcp_prewait_ms": 3,
+      "model_catalog_decision_ms": 0,
+      "node_boot_ms": 154,
+      "permission_context_ms": 12,
+      "plugin_state_refresh_inline_ms": 22,
+      "plugins_sync_install_ms": 0,
+      "plugins_sync_mcp_ms": 4,
+      "policy_limits_await_ms": 4,
+      "pre_action_client_data_url_ms": 0,
+      "pre_action_init_ms": 74,
+      "pre_action_managed_settings_ms": 3,
+      "pre_action_mdm_keychain_ms": 8,
+      "pre_action_migrations_ms": 0,
+      "pre_action_ms": 92,
+      "print_import_ms": 7,
+      "prompt_submit_hooks_ms": 2,
+      "qe_plugin_skills_load_ms": 2,
+      "qe_system_prompt_ms": 62,
+      "resume_deserialize_ms": 8,
+      "resume_hydrate_fetch_ms": 95,
+      "resume_hydrate_ms": 106,
+      "resume_live_check_ms": 1,
+      "resume_worker_init_join_ms": 106,
+      "sdk_mcp_update_ms": 1,
+      "settings_load_ms": 2,
+      "setup_file_watcher_ms": 0,
+      "setup_hooks_snapshot_ms": 0,
+      "setup_import_ms": 1,
+      "setup_ms": 26,
+      "setup_release_notes_ms": 4,
+      "setup_uds_dir_ms": 14,
+      "setup_uds_listen_ms": 2,
+      "setup_uds_messaging_ms": 22,
+      "setup_uds_publish_ms": 1,
+      "skills_load_ms": 17,
+      "skills_sync_commands_refresh_ms": 8,
+      "skills_sync_wait_ms": 176,
+      "spawn_to_exec_ms": 9,
+      "sse_connect_ms": 53,
+      "tools_commands_load_ms": 14,
+      "worker_init_ms": 118
+     },
+     "plugin_full_loads": 1,
+     "plugins_sync_round": "ok",
+     "process_start_tuning": 0,
+     "process_stretches": {
+      "to_first_message": {
+       "children_cpu_ms": 0,
+       "children_minor_faults": 0,
+       "cpu_ms": 32,
+       "major_faults": 25,
+       "minor_faults": 2027,
+       "storage_read_kib": 2520,
+       "wall_ms": 32
+      },
+      "to_first_turn": {
+       "children_cpu_ms": 0,
+       "children_minor_faults": 266,
+       "cpu_ms": 98,
+       "major_faults": 31,
+       "minor_faults": 4184,
+       "storage_read_kib": 3010,
+       "wall_ms": 219
+      },
+      "to_input_ready": {
+       "children_cpu_ms": 60,
+       "children_minor_faults": 2368,
+       "cpu_ms": 634,
+       "major_faults": 937,
+       "minor_faults": 38399,
+       "storage_read_kib": 103004,
+       "wall_ms": 770
+      }
+     },
+     "resume_hydrate_ccr_bytes": 11,
+     "resume_hydrate_ccr_events": 0,
+     "resume_hydrate_delta_events": 0,
+     "resume_hydrate_delta_fetch_attempted": false,
+     "resume_hydrate_on_disk_bytes": 0,
+     "resume_hydrate_prefetch": "pending",
+     "sdk_mcp_dial_runs": 0,
+     "sdk_mcp_servers_dialed": 0,
+     "time_origin_ms": 1793996571284.6194,
+     "user_context_builds": 2,
+     "warm_spare_claimed": false,
+     "warm_wake_early_fetch": false
+    },
+    "subtype": "init",
+    "terminal_slash_commands": [
+     "doctor",
+     "color",
+     "focus",
+     "reload-plugins"
+    ],
+    "type": "system",
+    "ultrathink_available": false,
+    "ultrathink_typed_raises": false,
+    "user_message_uuids": [
+     "00000000-0000-4000-8000-000000000005"
+    ],
+    "uuid": "00000000-0000-4000-8000-000000000011",
+    "view_mode": "default"
+   }
+  },
+  {
+   "event_id": "00000000-0000-4000-8000-000000000012",
+   "event_type": "control_response",
+   "created_at": "2024-01-02T20:22:52.136815Z",
+   "sequence_num": "12",
+   "source": "worker",
+   "payload": {
+    "response": {
+     "request_id": "set-mode-00000000-0000-4000-8000-000000000013",
+     "response": {
+      "mode": "auto"
+     },
+     "subtype": "success"
+    },
+    "type": "control_response",
+    "uuid": "00000000-0000-4000-8000-000000000012"
+   }
+  },
+  {
+   "event_id": "00000000-0000-4000-8000-000000000014",
+   "event_type": "autocompact_state",
+   "created_at": "2024-01-02T20:22:52.136815Z",
+   "sequence_num": "11",
+   "source": "worker",
+   "payload": {
+    "session_id": "00000000-0000-4000-8000-000000000004",
+    "type": "autocompact_state",
+    "uuid": "00000000-0000-4000-8000-000000000014",
+    "value": {
+     "effective_window": 980000,
+     "enabled": true,
+     "enforced": true,
+     "source": "model-default",
+     "threshold": 784000
+    }
+   }
+  },
+  {
+   "event_id": "00000000-0000-4000-8000-000000000015",
+   "event_type": "system",
+   "created_at": "2024-01-02T20:22:52.073725Z",
+   "sequence_num": "10",
+   "source": "worker",
+   "payload": {
+    "no_query_first": true,
+    "requires_rewind_request_id": true,
+    "session_id": "00000000-0000-4000-8000-000000000004",
+    "shared_message_id": true,
+    "staged_files": true,
+    "subtype": "turn_handoff_available",
+    "type": "system",
+    "uuid": "00000000-0000-4000-8000-000000000015",
+    "v": 1,
+    "worker_epoch": 1
+   }
+  },
+  {
+   "event_id": "00000000-0000-4000-8000-000000000016",
+   "event_type": "env_manager_log",
+   "created_at": "2024-01-02T20:22:48.088343Z",
+   "sequence_num": "3",
+   "source": "worker",
+   "payload": {
+    "data": {
+     "category": "init",
+     "content": "Allocating sandbox",
+     "extra": {
+      "step_id": "provision",
+      "step_status": "started"
+     },
+     "level": "info",
+     "timestamp": "2024-01-02T20:22:48.080367049Z"
+    },
+    "type": "env_manager_log",
+    "uuid": "00000000-0000-4000-8000-000000000016"
+   }
+  },
+  {
+   "event_id": "00000000-0000-4000-8000-000000000005",
+   "event_type": "user",
+   "created_at": "2024-01-02T20:22:48.029170Z",
+   "sequence_num": "2",
+   "source": "client",
+   "payload": {
+    "client_platform": "force_run_trigger",
+    "inbound_origin": "trigger_fire",
+    "message": {
+     "content": "Example task prompt.",
+     "role": "user"
+    },
+    "parent_tool_use_id": null,
+    "session_id": "",
+    "triggerFireReason": "manual",
+    "type": "user",
+    "uuid": "00000000-0000-4000-8000-000000000005"
+   }
+  },
+  {
+   "event_id": "00000000-0000-4000-8000-000000000017",
+   "event_type": "control_request",
+   "created_at": "2024-01-02T20:22:48.020245Z",
+   "sequence_num": "1",
+   "source": "client",
+   "payload": {
+    "request": {
+     "mode": "auto",
+     "subtype": "set_permission_mode"
+    },
+    "request_id": "set-mode-00000000-0000-4000-8000-000000000013",
+    "type": "control_request",
+    "uuid": "00000000-0000-4000-8000-000000000017"
+   }
+  }
+ ],
+ "resume_cursor": null
+}

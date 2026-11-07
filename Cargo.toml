@@ -1,0 +1,3 @@
+[workspace]
+members = ["crates/remote-sessions-core", "crates/remote-sessions-cli"]
+resolver = "2"

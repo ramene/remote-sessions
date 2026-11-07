@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "remote-sessions": {
+      "command": "${CLAUDE_PLUGIN_ROOT}/scripts/remote-sessions",
+      "args": ["mcp"]
+    }
+  }
+}
