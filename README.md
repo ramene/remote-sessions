@@ -2,6 +2,32 @@
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Release](https://img.shields.io/github/v/release/ramene/remote-sessions?sort=semver&label=release)](https://github.com/ramene/remote-sessions/releases) [![Homebrew](https://img.shields.io/badge/homebrew-ramene%2Ftap-orange?logo=homebrew)](https://github.com/ramene/homebrew-tap) [![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-d97757)](#install) [![Rust](https://img.shields.io/badge/rust-2021-dea584?logo=rust)](Cargo.toml) [![Platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20Linux-lightgrey)](#install)
 
+
+## 中文简介
+
+**remote-sessions**:从另一台机器驱动 Claude Code **Remote Control** 会话(运行在你自己的 Mac、Linux 机器或虚拟机上)。可以 `attach` 接入、`say` 发送真正的用户消息、`pending` 查看待处理的权限提示、`approve` / `deny` 批准或拒绝、`interrupt` 中断当前回合、`mode` 切换模式、`read` 读取对话、`stream` 实时跟随(按消息而不是按 token)、`cast` 录制为 asciicast。MIT 许可,另有 CLI、Claude Code 插件和 MCP 服务器三种形态。
+
+安装(与英文 README 相同):
+
+```bash
+claude plugin marketplace add ramene/remote-sessions
+claude plugin install remote-sessions@remote-sessions
+```
+
+或 Homebrew:`brew install ramene/tap/remote-sessions`
+
+三行示例:
+
+```bash
+remote-sessions pending <session>     # 查看等待回答的权限提示
+remote-sessions approve <session>     # 批准(或 deny <session> --message "原因")
+remote-sessions say <session> "run the tests"
+```
+
+**重要说明**:本工具使用的是 Claude Code 自己的客户端所调用的会话 events 接口,该接口不是官方公开文档化的 API,可能随 Claude Code 更新而变化。批准权限提示需要你的 claude.ai 登录凭据,请像保管登录密码一样保管令牌;建议在隔离的虚拟机中运行 Remote Control。本工具只是一个变通方案,并不修复 `/resume` 无法列出 Remote Control 会话的问题(#95231 / #94546)。
+
+完整英文文档:下文 / <https://github.com/ramene/remote-sessions>
+
 **Records your Claude Code sessions.** remote-sessions records local tmux panes and Tart VMs live, and cloud and Remote Control sessions from their event stream (message by message, not token by token), and serves the recordings through its recordings API as `.cast`, `.mp4` and `.gif`. It is free and MIT.
 
 Drive Claude Code **Remote Control** sessions that run on your own machines, from a terminal or from another Claude Code session. Verbs: `serve`, `list`, `attach`, `say`, `send`, `read`, `events`, `stream`, `pending`, `approve`, `deny`, `interrupt`, `mode`, `stop`, `cast` (record) and `recordings` (list, start, stop, serve).
