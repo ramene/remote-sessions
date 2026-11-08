@@ -4,6 +4,11 @@ version = "0.2.2"
 edition = "2021"
 description = "Serve, list, send into, read and stop Claude Code Remote Control sessions on your own machines (no UI)."
 license = "MIT"
+repository = "https://github.com/ramene/remote-sessions"
+homepage = "https://github.com/ramene/remote-sessions"
+readme = "README.md"
+keywords = ["claude", "claude-code", "agents", "cli", "sessions"]
+categories = ["command-line-utilities", "development-tools"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
