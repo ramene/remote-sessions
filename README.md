@@ -27,7 +27,7 @@
 
 ![Install flow: brew, binaries on PATH, claude plugin, then /remote-room or attach --tui](docs/images/install-flow.svg)
 
-Install with Homebrew (`brew install ramene/tap/remote-sessions`) or as a Claude Code plugin (`claude plugin marketplace add ramene/remote-sessions`, then `claude plugin install remote-sessions@remote-sessions`). Then run `/remote-room` in Claude Code, or `remote-sessions attach <session> --tui` in a terminal. The step-by-step guide, with a picture for each step (install, login, first steps, the control room, tmux and cmux, cloud-sessions), is [docs/getting-started.md](docs/getting-started.md).
+Install with Homebrew (`brew install ramene/tap/remote-sessions`) or as a Claude Code plugin (`claude plugin marketplace add ramene/remote-sessions`, then `claude plugin install remote-sessions@remote-sessions`). Then run `/remote-room` in Claude Code, or `remote-sessions attach <session> --tui` in a terminal (both new in 0.3.0). Upgrading from 0.2.x: `brew upgrade ramene/tap/remote-sessions`, `claude plugin marketplace update remote-sessions`, `claude plugin update remote-sessions@remote-sessions`, then `/reload-plugins` or restart Claude Code. The step-by-step guide, with a picture for each step (install, login, first steps, the control room, tmux and cmux, cloud-sessions), is [docs/getting-started.md](docs/getting-started.md).
 
 ## What it is, and how it differs from cloud-sessions
 
@@ -198,7 +198,7 @@ A `403` that says the device is untrusted prints a clear sentence. Claude Code's
 
 MCP tools: `remote_pending`, `remote_approve`, `remote_deny`, `remote_say`.
 
-### `attach --tui`
+### `attach --tui` (new in 0.3.0)
 
 ```console
 $ remote-sessions attach session_01ExampleAAAAAAAAAAAAAAA --tui [--host mac-a] [--no-color] [--ascii]
@@ -234,7 +234,7 @@ In the permission modal: `1` Allow once, `2` Deny (Enter confirms), `3` or Tab D
 
 ## Control room
 
-`control` is one full-screen view over your Remote Control sessions and your cloud sessions. It is open source (MIT), like the rest of this repo.
+New in 0.3.0. `control` is one full-screen view over your Remote Control sessions and your cloud sessions. It is open source (MIT), like the rest of this repo.
 
 ```console
 $ remote-sessions control                       # this machine
@@ -287,7 +287,7 @@ $ tmux new-window 'remote-sessions attach session_01ExampleAAAAAAAAAAAAAAA --tui
 $ cmux new-split right --command 'remote-sessions control'
 ```
 
-From Claude Code, the plugin command `/remote-room` opens the control room in a split beside the Claude Code pane: with `cmux new-split right --command ...` inside cmux (its terminals set `CMUX_SURFACE_ID` and `CMUX_WORKSPACE_ID`), else with `tmux split-window -h` inside tmux. Outside both it creates nothing and prints the command to run. In the room, Enter drops into a session in the same pane.
+From Claude Code, the plugin command `/remote-room` (new in 0.3.0) opens the control room in a split beside the Claude Code pane: with `cmux new-split right --command ...` inside cmux (its terminals set `CMUX_SURFACE_ID` and `CMUX_WORKSPACE_ID`), else with `tmux split-window -h` inside tmux. Outside both it creates nothing and prints the command to run. In the room, Enter drops into a session in the same pane.
 
 Ctrl-C in `attach --tui`, or `q` / Esc in the room, only leaves the view: the session keeps running.
 

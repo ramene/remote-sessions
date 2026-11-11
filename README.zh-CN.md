@@ -23,7 +23,7 @@
 
 ![安装流程：brew、PATH 上的可执行文件、claude 插件，然后 /remote-room 或 attach --tui](docs/images/install-flow.svg)
 
-用 Homebrew 安装（`brew install ramene/tap/remote-sessions`），或作为 Claude Code 插件安装（`claude plugin marketplace add ramene/remote-sessions`，然后 `claude plugin install remote-sessions@remote-sessions`）。之后在 Claude Code 中运行 `/remote-room`，或在终端中运行 `remote-sessions attach <session> --tui`。分步指南（英文，每一步都配有图片：安装、登录、第一步、控制室、tmux 与 cmux、cloud-sessions）见 [docs/getting-started.md](docs/getting-started.md)。
+用 Homebrew 安装（`brew install ramene/tap/remote-sessions`），或作为 Claude Code 插件安装（`claude plugin marketplace add ramene/remote-sessions`，然后 `claude plugin install remote-sessions@remote-sessions`）。之后在 Claude Code 中运行 `/remote-room`，或在终端中运行 `remote-sessions attach <session> --tui`（两者均为 0.3.0 新增）。从 0.2.x 升级：`brew upgrade ramene/tap/remote-sessions`、`claude plugin marketplace update remote-sessions`、`claude plugin update remote-sessions@remote-sessions`，然后 `/reload-plugins` 或重启 Claude Code。分步指南（英文，每一步都配有图片：安装、登录、第一步、控制室、tmux 与 cmux、cloud-sessions）见 [docs/getting-started.md](docs/getting-started.md)。
 
 ## 它是什么，与 cloud-sessions 有何不同
 

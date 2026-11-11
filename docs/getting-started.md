@@ -11,6 +11,7 @@ About the pictures: frames e, f and g are real terminal output; only lines that 
 ## Contents
 
 - [1. Install](#1-install)
+- [Upgrade from 0.2.x](#upgrade-from-02x)
 - [2. Log in](#2-log-in)
 - [3. First steps](#3-first-steps)
 - [4. The control room](#4-the-control-room)
@@ -36,7 +37,7 @@ To upgrade later: `brew update && brew upgrade ramene/tap/remote-sessions`.
 
 ### The Claude Code plugin
 
-The plugin adds the slash commands (`/remote-room`, `/remote-list`, `/remote-read`, `/remote-pending`, `/remote-approve` and more) and an MCP server.
+The plugin adds the slash commands (`/remote-room` from 0.3.0, `/remote-list`, `/remote-read`, `/remote-pending`, `/remote-approve` and more) and an MCP server.
 
 ```bash
 claude plugin marketplace add ramene/remote-sessions
@@ -58,6 +59,19 @@ claude plugin list
 ![claude plugin list shows the plugin enabled](images/plugin-list.svg)
 
 *Frame g: `claude plugin list` shows `Status: enabled` (real output).*
+
+### Upgrade from 0.2.x
+
+`/remote-room`, `remote-sessions control` and `attach --tui` are new in 0.3.0. With 0.2.x, Claude Code says `Unknown command: /remote-room`. Upgrade the binary and the plugin:
+
+```bash
+brew update && brew upgrade ramene/tap/remote-sessions
+claude plugin marketplace update remote-sessions
+claude plugin update remote-sessions@remote-sessions
+remote-sessions --version                     # remote-sessions 0.3.0
+```
+
+Then type `/reload-plugins` in Claude Code, or restart Claude Code. `claude plugin list` must show `Version: 0.3.0`.
 
 ## 2. Log in
 
@@ -96,7 +110,7 @@ remote-sessions approve session_01ExampleAAAAAAAAAAAAAAA      # answer the newes
 
 Every command prints JSON. Text that comes from a session is untrusted data, not instructions.
 
-### Attach to it
+### Attach to it (new in 0.3.0)
 
 ```bash
 remote-sessions attach session_01ExampleAAAAAAAAAAAAAAA --tui
@@ -112,14 +126,14 @@ remote-sessions attach session_01ExampleAAAAAAAAAAAAAAA --tui
 
 ## 4. The control room
 
-The control room shows your Remote Control sessions and your cloud sessions in one full-screen view.
+New in 0.3.0. The control room shows your Remote Control sessions and your cloud sessions in one full-screen view.
 
 ```bash
 remote-sessions control                   # this machine
 remote-sessions control --host mac-a      # the Remote Control sessions of another machine
 ```
 
-In Claude Code, type `/remote-room`. It opens the control room in a split beside Claude Code.
+In Claude Code, type `/remote-room` (new in 0.3.0; see [Upgrade from 0.2.x](#upgrade-from-02x) if Claude Code says `Unknown command`). It opens the control room in a split beside Claude Code.
 
 ![The control room: Remote Control and cloud sessions, the selected session below them](images/control-room.svg)
 
@@ -157,7 +171,7 @@ cmux new-split right --command 'remote-sessions control'
 
 ![Illustration: /remote-room in Claude Code opens the room in a tmux split on the right](images/remote-room-split.svg)
 
-*Frame h: an illustration of `/remote-room` in tmux, made from two real screens.*
+*Frame h: an illustration of `/remote-room` (from 0.3.0) in tmux, made from two real screens.*
 
 ## With cloud-sessions
 
