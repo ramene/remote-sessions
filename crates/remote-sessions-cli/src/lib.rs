@@ -2,7 +2,7 @@
 //! Every command returns one JSON value; failures are `Err(message)`.
 //!
 //! Security: the optional API token (for `events`) comes from `REMOTE_SESSIONS_TOKEN` or a 0600 file, never from
-//! argv, and is never printed (on macOS the Claude Code login in the keychain is the last fallback). Event text is untrusted and every output that carries it says so. `stop` ends the
+//! argv, and is never printed (then the Claude Code login: the macOS keychain, then `~/.claude/.credentials.json`; see [`resolve_token`]). Event text is untrusted and every output that carries it says so. `stop` ends the
 //! session and needs `--yes`. `send` is a peer message and cannot approve; `approve`/`deny`/`say`/`interrupt`/`attach`
 //! use the session events API (the same calls Claude Code's own client makes) with your claude.ai login token.
 use remote_sessions_core::control::Decision;
@@ -56,19 +56,59 @@ pub fn ctx_from_env() -> Ctx {
     Ctx {
         claude: std::env::var_os("REMOTE_SESSIONS_CLAUDE").map(PathBuf::from),
         api: std::env::var("REMOTE_SESSIONS_API").ok(),
-        token: Box::new(|| {
-            if let Ok(t) = std::env::var("REMOTE_SESSIONS_TOKEN") { return Ok(t); }
-            let home = std::env::var_os("HOME").map(PathBuf::from).ok_or("No HOME.")?;
-            let path = home.join(".config/remote-sessions/token");
-            if let Ok(t) = std::fs::read_to_string(&path) { return Ok(t.trim().to_string()); }
-            keychain_token().ok_or_else(|| "No token: set REMOTE_SESSIONS_TOKEN, put one in ~/.config/remote-sessions/token (0600), or sign in to Claude Code on this Mac (its keychain login is used). Inside Claude Code, /remote-read needs no token.".to_string())
-        }),
+        token: Box::new(|| resolve_token(&|k| std::env::var(k).ok(), &keychain_token, now_ms())),
         ps: Box::new(rc::ps_listing),
         signal: Box::new(rc::signal_int),
         env: Box::new(|k| std::env::var(k).ok()),
         transcript: Box::new(transcript::read),
         recordings: std::sync::Arc::new(recordings::SshBackend::from_env()),
     }
+}
+
+pub const NO_TOKEN: &str = "No token: set REMOTE_SESSIONS_TOKEN, put one in ~/.config/remote-sessions/token (0600), or sign in to Claude Code with `claude` on this machine (its login is read from the macOS keychain, or from ~/.claude/.credentials.json on Linux, or $CLAUDE_CONFIG_DIR/.credentials.json when that is set). Inside Claude Code, /remote-read needs no token.";
+pub const LOGIN_EXPIRED: &str = "The Claude Code login has expired: run claude once to refresh it, then try again.";
+
+fn now_ms() -> i64 {
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis() as i64)
+}
+fn non_empty(s: Option<String>) -> Option<String> {
+    s.map(|t| t.trim().to_string()).filter(|t| !t.is_empty())
+}
+
+/// The token for the session events API, in this order: (1) `REMOTE_SESSIONS_TOKEN`; (2) the file
+/// `~/.config/remote-sessions/token`; (3) the macOS keychain login of Claude Code (`keychain`, None elsewhere);
+/// (4) the Claude Code login file `$CLAUDE_CONFIG_DIR/.credentials.json`, else `~/.claude/.credentials.json`
+/// (Linux, and macOS when the keychain was locked at login), key `claudeAiOauth.accessToken`. That file is only
+/// read: an expired login (`expiresAt`, ms since the epoch, at or before `now_ms`) is an error, never refreshed
+/// here. The file mode is not checked. No error text carries a token.
+pub fn resolve_token(env: &dyn Fn(&str) -> Option<String>, keychain: &dyn Fn() -> Option<String>, now_ms: i64) -> Result<String> {
+    if let Some(t) = non_empty(env("REMOTE_SESSIONS_TOKEN")) { return Ok(t); }
+    let home = non_empty(env("HOME")).map(PathBuf::from);
+    if let Some(home) = &home {
+        if let Some(t) = non_empty(std::fs::read_to_string(home.join(".config/remote-sessions/token")).ok()) { return Ok(t); }
+    }
+    if let Some(t) = keychain() { return Ok(t); }
+    let creds = match (non_empty(env("CLAUDE_CONFIG_DIR")), &home) {
+        (Some(dir), _) => PathBuf::from(dir).join(".credentials.json"),
+        (None, Some(home)) => home.join(".claude/.credentials.json"),
+        (None, None) => return Err(NO_TOKEN.into()),
+    };
+    claude_login_file_token(&creds, now_ms)
+}
+
+/// The access token from Claude Code's login file. Missing file: the plain no-token error.
+fn claude_login_file_token(path: &Path, now_ms: i64) -> Result<String> {
+    let text = match std::fs::read_to_string(path) {
+        Ok(t) => t,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Err(NO_TOKEN.into()),
+        Err(_) => return Err(format!("The Claude Code login file {} could not be read. {NO_TOKEN}", path.display())),
+    };
+    let value: Value = serde_json::from_str(&text).map_err(|_| format!("The Claude Code login file {} is not valid JSON. {NO_TOKEN}", path.display()))?;
+    let oauth = &value["claudeAiOauth"];
+    let token = oauth["accessToken"].as_str().map(str::trim).filter(|t| !t.is_empty())
+        .ok_or_else(|| format!("The Claude Code login file {} has no claudeAiOauth.accessToken (not a claude.ai login?). {NO_TOKEN}", path.display()))?;
+    if oauth["expiresAt"].as_i64().is_some_and(|e| e <= now_ms) { return Err(LOGIN_EXPIRED.into()); }
+    Ok(token.to_string())
 }
 
 /// The claude.ai login access token from the macOS keychain item Claude Code writes. Never printed.

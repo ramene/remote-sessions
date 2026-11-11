@@ -60,7 +60,8 @@ Environment variables:
 | variable | used by | meaning |
 |---|---|---|
 | `REMOTE_SESSIONS_BIN` | plugin launcher | path of the binary to run |
-| `REMOTE_SESSIONS_TOKEN` | `events` | API token; otherwise read from `~/.config/remote-sessions/token` (0600). Inside Claude Code `/remote-read` needs no token |
+| `REMOTE_SESSIONS_TOKEN` | `events` | API token; otherwise read from `~/.config/remote-sessions/token` (0600), then the Claude Code login (macOS keychain, then `~/.claude/.credentials.json`). Inside Claude Code `/remote-read` needs no token |
+| `CLAUDE_CONFIG_DIR` | `events` | Claude Code's config folder; its `.credentials.json` is read in place of `~/.claude/.credentials.json` |
 | `REMOTE_SESSIONS_CLAUDE` | `send`, `serve` | path of the `claude` binary |
 | `REMOTE_SESSIONS_API` | `events` | API base URL (default `https://api.anthropic.com`) |
 | `REMOTE_SESSIONS_RECORDING_HOSTS` | `recordings` | comma list of ssh hosts (default `localhost`: set your own) |
@@ -162,7 +163,9 @@ See [Recording](#recording). `remote-sessions mcp` runs the MCP server (12 tools
 
 Attach a terminal to a Remote Control session on another machine: see the conversation, send prompts, approve permission prompts. These verbs use the session events API, the same two calls Claude Code's own client makes (`GET` and `POST /v1/code/sessions/<id>/events`), as the signed-in claude.ai user. The session is addressed as `session_<x>`, then `cse_<x>` if that fails. The live view uses `GET /v1/code/sessions/<id>/events/stream` (server-sent events), also a call Claude Code's own client makes.
 
-Token: `REMOTE_SESSIONS_TOKEN`, else `~/.config/remote-sessions/token` (0600), else on macOS the Claude Code login in the keychain. It is sent only as the Bearer header and never printed. A token from `claude setup-token` is inference-only and will be refused.
+Token: `REMOTE_SESSIONS_TOKEN`, else `~/.config/remote-sessions/token` (0600), else on macOS the Claude Code login in the keychain, else the Claude Code login file: `claudeAiOauth.accessToken` in `~/.claude/.credentials.json` (or `$CLAUDE_CONFIG_DIR/.credentials.json` when `CLAUDE_CONFIG_DIR` is set). It is sent only as the Bearer header and never printed.
+
+Linux: Claude Code keeps its login in `~/.claude/.credentials.json` (mode 0600), so after `claude` login on the Linux box (`claude auth status` says `loggedIn: true`) these verbs need no token file. remote-sessions only reads that file; it never refreshes or writes it. When the login has expired it says so: run `claude` once to refresh it. (macOS also writes this file when the keychain is locked at login, for example over ssh.) A token from `claude setup-token` is inference-only and will be refused.
 
 ```console
 $ remote-sessions attach session_01ExampleAAAAAAAAAAAAAAA               # terminal client, live (add --poll to force polling)

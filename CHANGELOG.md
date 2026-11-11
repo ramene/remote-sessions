@@ -1,7 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.2.3 (unreleased)
 
+- Linux: use the Claude Code login from ~/.claude/.credentials.json. Token order for `events`, `read`, `pending`, `approve`, `deny`, `say`, `interrupt`, `mode`, `stream` and `attach`: `REMOTE_SESSIONS_TOKEN`, then `~/.config/remote-sessions/token`, then the macOS keychain login (macOS only), then `claudeAiOauth.accessToken` from `$CLAUDE_CONFIG_DIR/.credentials.json` (when `CLAUDE_CONFIG_DIR` is set) or `~/.claude/.credentials.json` (all platforms). Before, Linux found no token although `claude auth status` said `loggedIn: true` (s461). The file is only read: an expired login (`expiresAt` in the past) is an error ("the Claude Code login has expired: run claude once to refresh it"), not a stale request. Bad JSON or a missing `accessToken` key gives a clear error. No error text carries a token.
+- Tests: `tests/token.rs` (valid, expired, missing key, bad JSON, missing file, file mode 0644 accepted, `CLAUDE_CONFIG_DIR`, and the precedence order).
 - MCP: every tool now declares a `title` and all four tool annotation hints as booleans (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`; MCP spec 2025-06-18). Changed values: `remote_approve` and `remote_deny` are destructive (an approved tool can change or delete files; a denied tool call cannot be redone); `remote_list` and `remote_stop` are open-world (with `host` they run over ssh).
 - Tests: `tests/mcp_tools.rs` has one test per MCP tool, by name: its hints and its argument checks (no network, no ssh, no signal).
 
