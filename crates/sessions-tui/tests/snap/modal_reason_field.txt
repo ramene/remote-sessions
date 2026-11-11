@@ -1,0 +1,20 @@
+
+
+
+┌ permission needed ───────────────────────────────────────────────────────────┐
+│ WebFetch wants to use:                                                       │
+│                                                                              │
+│  {                                                                           │
+│    "url": "https://example.com/"                                             │
+│  }                                                                           │
+│                                                                              │
+│   1  Allow once                                                              │
+│   2  Deny   (3: deny with a reason)                                          │
+│   reason (optional): too risky▏                                              │
+│ Enter send · Esc back                                                        │
+└──────────────────────────────────────────────────────────────────────────────┘
+waiting for your decision
+────────────────────────────────────────────────────────────────────────────────
+› (input paused)
+────────────────────────────────────────────────────────────────────────────────
+ session_01Ex… │ mac-a │ mode ? │ ● live                        waiting for you

@@ -1,0 +1,10 @@
+
+
+
+
+· live stream unavailable (closed); polling
+
+──────────────────────────────────────────────────────────────────────
+› message the session, or / for commands
+──────────────────────────────────────────────────────────────────────
+ session_01Ex… │ mac-a │ mode ? │ ◐ polling 3s

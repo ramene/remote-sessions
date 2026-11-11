@@ -19,8 +19,9 @@ const USAGE: &str = "usage: remote-sessions <command>
   interrupt <session>                            Esc, not kill
   mode   <session> <default|acceptEdits|auto|plan|dontAsk|bypassPermissions>   set the permission mode (default = Manual)
   stream    <session> [--from <seq>] [--for <s>]  live events, one JSON line each as they arrive (events/stream: message by message, not token by token); falls back to polling
-  attach    <session> [--interval 1] [--poll]    terminal client: live view (events/stream; polls if it cannot, and says so), sends typed lines, asks Allow? [y/n]; Ctrl-C leaves without stopping
+  attach    <session> [--interval 1] [--poll] [--tui [--host <label>] [--no-color] [--ascii]]    terminal client (--tui: full-screen UI): live view (events/stream; polls if it cannot, and says so), sends typed lines, asks Allow? [y/n]; Ctrl-C leaves without stopping
   stop   <session> --yes [--host <ssh-host>]     one SIGINT to the worker: ENDS the session, the server archives it
+  control [--host <ssh-host>] [--all] [--routines] [--no-color] [--ascii] [--once [--size WxH] [--ansi]] [--demo]   the control room: Remote Control and cloud sessions in two panels; arrows or click to select, Enter or a second click to drop in, a/d approve or deny, s send to a cloud session, q/Esc/click x close. --once prints one frame (--ansi: with colors even when piped); --all also lists the account's own sessions (list --unofficial; also REMOTE_SESSIONS_CLOUD_ALL=1); --routines (or R in the room, or REMOTE_SESSIONS_ROUTINES=1) shows each routine as one plain line with its newest runs under it, off by default; --demo uses placeholder sessions
   mcp                                            run as an MCP server over stdio";
 
 fn fail(message: &str) -> ! {
@@ -47,11 +48,38 @@ fn main() {
             if let Err(e) = recordings::serve(ctx.recordings.clone(), bind, &token_file) { fail(&e); }
             return;
         }
+        "control" => {
+            let parsed = match parse_args(rest) { Ok(p) => p, Err(e) => fail(&e) };
+            let host = parsed.values.get("host").cloned();
+            let demo = parsed.switch("demo");
+            let backend: std::sync::Arc<dyn sessions_tui::room::RoomBackend> = if demo { std::sync::Arc::new(remote_sessions_cli::control_room::DemoRoom) } else { std::sync::Arc::new(remote_sessions_cli::control_room::LiveRoom::new(ctx, host.clone()).with_all(parsed.switch("all")).with_routines(parsed.switch("routines"))) };
+            let label = host.clone().unwrap_or_default();
+            if parsed.switch("once") {
+                let size = match parsed.values.get("size") { Some(s) => s.split_once("x").and_then(|(w, h)| Some((w.parse::<u16>().ok()?, h.parse::<u16>().ok()?))).filter(|(w, h)| *w >= 30 && *h >= 9 && *w <= 400 && *h <= 200).unwrap_or_else(|| fail("--size must look like 100x28 (at least 30x9).")), None => (100, 28) };
+                let th = sessions_tui::theme::Theme::detect(parsed.switch("no-color"), parsed.switch("ascii"));
+                let ansi = th.color && (parsed.switch("ansi") || std::io::IsTerminal::is_terminal(&stdout()));
+                let now = if demo { remote_sessions_cli::control_room::DEMO_NOW_MS } else { sessions_tui::room_app::now_ms() };
+                print!("{}", remote_sessions_cli::control_room::render_once(&*backend, &label, demo, size, &th, ansi, now, None));
+                return;
+            }
+            let opts = sessions_tui::RoomOptions { host: label, no_color: parsed.switch("no-color"), ascii: parsed.switch("ascii"), demo };
+            if let Err(e) = sessions_tui::run_room(backend, opts) { fail(&e); }
+            return;
+        }
         "attach" => {
             let parsed = match parse_args(rest) { Ok(p) => p, Err(e) => fail(&e) };
             let session = parsed.positional.first().cloned().unwrap_or_else(|| fail("attach <session> [--interval 1]"));
             let seconds = parsed.values.get("interval").map(|v| v.parse::<f64>().ok().filter(|n| n.is_finite() && (0.2..=60.0).contains(n)).unwrap_or_else(|| fail("--interval must be 0.2-60 seconds."))).unwrap_or(1.0);
             let client = match ctx.client() { Ok(c) => c, Err(e) => fail(&e) };
+            if parsed.switch("tui") && std::io::IsTerminal::is_terminal(&stdout()) {
+                let backend = std::sync::Arc::new(remote_sessions_cli::tui::RcBackend { client, session: session.clone(), host: parsed.values.get("host").cloned().unwrap_or_else(|| "remote".into()) });
+                let opts = sessions_tui::Options { no_color: parsed.switch("no-color"), ascii: parsed.switch("ascii"), ..Default::default() };
+                match sessions_tui::run(backend, opts) {
+                    Ok(out) => if let Some(why) = out.fatal { eprintln!("{why}"); std::process::exit(2); },
+                    Err(e) => fail(&e),
+                }
+                return;
+            }
             let (tx, rx) = std::sync::mpsc::channel();
             std::thread::spawn(move || { use std::io::BufRead; for line in stdin().lock().lines() { match line { Ok(l) => if tx.send(l).is_err() { break; }, Err(_) => break } } });
             let interval = std::time::Duration::from_secs_f64(seconds);

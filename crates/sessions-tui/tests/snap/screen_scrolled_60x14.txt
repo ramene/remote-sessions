@@ -1,0 +1,14 @@
+
+● message number 32
+
+● message number 33
+
+● message number 34
+
+● message number 35
+
+⠋ session is working · 0s              ↓ 1 new · End to jump
+────────────────────────────────────────────────────────────
+›
+────────────────────────────────────────────────────────────
+ session_01Ex… │ mac-a │ mode ? │ ● live

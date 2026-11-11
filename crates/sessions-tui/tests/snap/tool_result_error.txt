@@ -1,0 +1,3 @@
+◆ Bash(cat x)
+  ╰ error: no such file
+    … +1 lines · ctrl-o to expand

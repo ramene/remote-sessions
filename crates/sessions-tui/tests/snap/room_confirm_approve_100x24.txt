@@ -1,0 +1,24 @@
+ remote-sessions · control room                  example-host  ⏸ 2 waiting  ·  ● 1 running  ✕ close
+┌ Remote Control ⏸ 2 waiting ──────────────────────────────────────────────────────────────────────┐
+│› ⏸  session_01ExampleAAAAAAAAAAAAAAA  pid 4242   waiting on Edit src/parser.rs                   │
+│  ○  session_01ExampleBBBBBBBBBBBBBBB  pid 4243   idle                                            │
+│  ⏸  session_01ExampleCCCCCCCCCCCCCCC  pid 4244   waiting on Bash cargo test --workspace          │
+│                                                                                                  │
+│                                                                                                  │
+└────────────────┌ approve ───────────────────────────────────────────────────────┐────────────────┘
+┌ Cloud ● 1 runni│ Edit wants to run, and you would allow it:                     │────────────────┐
+│  ●  running    │                                                                │                │
+│  ✓  finished   │  src/parser.rs                                                 │                │
+│  ○  idle       │                                                                │                │
+│                │ session_01ExampleAAAAAAAAAAAAAAA                               │                │
+│                │ y allow   n/Esc cancel                                         │                │
+└────────────────└────────────────────────────────────────────────────────────────┘────────────────┘
+┌ Selected ────────────────────────────────────────────────────────────────────────────────────────┐
+│ session_01ExampleAAAAAAAAAAAAAAA                                                                 │
+│ pid 4242  ⏸ waiting on 1 permission prompt                                                       │
+│   ⏸ Edit src/parser.rs                                                                           │
+│ Enter remote-sessions attach session_01ExampleAAAAAAAAAAAAAAA --tui                              │
+│                                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+ remote 0s ago  ·  cloud 0s ago
+ y allow  n/Esc cancel

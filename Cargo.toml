@@ -1,3 +1,7 @@
 [workspace]
-members = ["crates/remote-sessions-core", "crates/remote-sessions-cli"]
+members = [
+    "crates/remote-sessions-core",
+    "crates/remote-sessions-cli",
+    "crates/sessions-tui",
+]
 resolver = "2"

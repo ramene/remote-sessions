@@ -1,0 +1,24 @@
+
+● I checked the three failing tests. Two are timing flakes in the stream reader.
+
+◆ Bash(cargo test -p core stream -- --nocapture)
+  ╰ running 1
+    running 2
+    running 3
+    running 4
+    running 5
+    running 6
+    running 7
+    running 8
+    running 9
+    running 10
+    running 11
+    running 12
+
+● 214 passed, 0 failed.
+── turn done · 1m 52s · 2 turns ────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────────────────────────
+› message the session, or / for commands
+────────────────────────────────────────────────────────────────────────────────
+ session_01Ex… │ mac-a │ manual │ ● live      tab mode · ctrl-o expand · ? help

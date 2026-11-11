@@ -75,8 +75,11 @@ pub fn response_payload(prompt: &Prompt, decision: &Decision) -> Value {
 }
 
 /// A real user turn (not a peer message).
-pub fn user_payload(session_id: &str, text: &str) -> Value {
-    json!({"uuid": uuid4(), "session_id": session_id, "type": "user", "parent_tool_use_id": null, "message": {"role": "user", "content": text}})
+pub fn user_payload(session_id: &str, text: &str) -> Value { user_payload_as(&uuid4(), session_id, text) }
+
+/// Like [`user_payload`] with a uuid the caller chose, so a UI can match the server's echo to its own copy.
+pub fn user_payload_as(uuid: &str, session_id: &str, text: &str) -> Value {
+    json!({"uuid": uuid, "session_id": session_id, "type": "user", "parent_tool_use_id": null, "message": {"role": "user", "content": text}})
 }
 
 /// Esc, not kill: the control_request Claude's client sends.
@@ -142,6 +145,12 @@ impl Client {
         self.post_built(session, &|id| user_payload(id, text))
     }
 
+    /// Send text as a real user turn with a caller-chosen event uuid (same request as [`Client::say`]).
+    pub fn say_as(&self, session: &str, uuid: &str, text: &str) -> Result<Value> {
+        if text.trim().is_empty() { return Err("The message is empty.".into()); }
+        self.post_built(session, &|id| user_payload_as(uuid, id, text))
+    }
+
     /// Interrupt the running turn (Esc).
     pub fn interrupt(&self, session: &str) -> Result<Value> { self.post_built(session, &|_| interrupt_payload()) }
     /// Set the permission mode (default = Manual: tool calls ask).
@@ -152,6 +161,12 @@ impl Client {
 #[cfg(test)]
 mod mode_tests {
     use super::*;
+    #[test]
+    fn user_payload_as_keeps_the_callers_uuid() {
+        let p = user_payload_as("11111111-2222-4333-8444-555555555555", "session_01ExampleAAAAAAAAAAAAAAA", "hi");
+        assert_eq!((p["uuid"].as_str(), p["type"].as_str(), p["message"]["content"].as_str()), (Some("11111111-2222-4333-8444-555555555555"), Some("user"), Some("hi")));
+        assert_eq!(user_payload("session_01ExampleAAAAAAAAAAAAAAA", "hi")["message"], p["message"]);
+    }
     #[test]
     fn mode_payload_is_the_set_permission_mode_request() {
         let p = mode_payload("default");

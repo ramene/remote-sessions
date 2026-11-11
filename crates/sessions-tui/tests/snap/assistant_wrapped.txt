@@ -1,0 +1,4 @@
+● I checked the three failing tests. Two
+  are timing flakes in the stream
+  reader; the third is a real off-by-one
+  in the resume path.

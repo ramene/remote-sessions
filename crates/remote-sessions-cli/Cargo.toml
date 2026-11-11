@@ -1,6 +1,6 @@
 [package]
 name = "remote-sessions-cli"
-version = "0.2.3"
+version = "0.3.0"
 edition = "2021"
 description = "remote-sessions: serve, list, send, events and stop for Claude Code Remote Control sessions (JSON output), plus an MCP server."
 license = "MIT"
@@ -15,5 +15,7 @@ name = "remote-sessions"
 path = "src/main.rs"
 
 [dependencies]
-remote-sessions-core = { path = "../remote-sessions-core", version = "0.2.3" }
+remote-sessions-core = { path = "../remote-sessions-core", version = "0.3.0" }
+sessions-tui = { path = "../sessions-tui", version = "0.3.0" }
 serde_json = "1"
+crossterm = "0.28"

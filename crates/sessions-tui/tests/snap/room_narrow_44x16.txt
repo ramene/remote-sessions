@@ -1,0 +1,16 @@
+ remote-sessions · control room     ✕ close
+┌ Remote Control ⏸ 2 waiting ──────────────┐
+│› ⏸  session_01ExampleAAAAAAAAAAAAAAA     │
+│  ○  session_01ExampleBBBBBBBBBBBBBBB     │
+│  ⏸  session_01ExampleCCCCCCCCCCCCCCC     │
+│                                          │
+│                                          │
+└──────────────────────────────────────────┘
+┌ Cloud ● 1 running ───────────────────────┐
+│  ●  Fix the flaky parser test            │
+│  ✓  Add a docs page for the CLI          │
+│  ○  Migrate config to the new schema     │
+│                                          │
+└──────────────────────────────────────────┘
+ remote 0s ago  ·  cloud 0s ago
+ ↑↓ select  q/Esc/✕ close

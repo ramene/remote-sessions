@@ -1,0 +1,20 @@
+ remote-sessions . control room                                         x close
++ Remote Control || 2 waiting -------------------------------------------------+
+|> || session_01ExampleAAAAAAAAAAAAAAA  waiting on Edit src/parser.rs          |
+|  o  session_01ExampleBBBBBBBBBBBBBBB  idle                                   |
+|  || session_01ExampleCCCCCCCCCCCCCCC  waiting on Bash cargo test --workspace |
++------------------------------------------------------------------------------+
++ Cloud * 1 running -----------------------------------------------------------+
+|  *  running    20s  your-org/your~  Fix the flaky parser test                |
+|  v  finished    2h  your-org/docs   Add a docs page for the CLI              |
+|  o  idle       14m  your-org/your~  Migrate config to the new schema         |
++------------------------------------------------------------------------------+
++ Selected --------------------------------------------------------------------+
+| session_01ExampleAAAAAAAAAAAAAAA                                             |
+| pid 4242  || waiting on 1 permission prompt                                  |
+|   || Edit src/parser.rs                                                      |
+| Enter remote-sessions attach session_01ExampleAAAAAAAAAAAAAAA --tui          |
+|                                                                              |
++------------------------------------------------------------------------------+
+ remote 0s ago  .  cloud 0s ago
+ Up/Dn select  Enter/click attach  a approve  d deny  r refresh  q/Esc/x close

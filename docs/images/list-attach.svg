@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 872 378" width="872" height="378" role="img" aria-label="A plain terminal: list, attach, then Ctrl-C leaves the session running">
+<title>A plain terminal: list, attach, then Ctrl-C leaves the session running</title>
+<rect x="0.5" y="0.5" width="871" height="377" rx="10" fill="#0a0a0a" stroke="#262626"/>
+<path d="M10.5 0.5 H861.5 A10 10 0 0 1 871.5 10.5 V30.5 H0.5 V10.5 A10 10 0 0 1 10.5 0.5 Z" fill="#171717"/>
+<line x1="0.5" y1="30.5" x2="871.5" y2="30.5" stroke="#262626"/>
+<circle cx="18" cy="15.5" r="5.5" fill="#fb7185" opacity="0.85"/>
+<circle cx="36" cy="15.5" r="5.5" fill="#fbbf24" opacity="0.85"/>
+<circle cx="54" cy="15.5" r="5.5" fill="#2dd4bf" opacity="0.85"/>
+<text x="436.0" y="20" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="12" fill="#737373">zsh  —  100×24</text>
+<g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="14" xml:space="preserve">
+<text x="16.0" y="55.1" fill="#2dd4bf" textLength="8.4" lengthAdjust="spacingAndGlyphs" font-weight="600">$</text>
+<text x="32.8" y="55.1" fill="#f5f5f5" textLength="126.0" lengthAdjust="spacingAndGlyphs">remote-sessions</text>
+<text x="167.2" y="55.1" fill="#f5f5f5" textLength="33.6" lengthAdjust="spacingAndGlyphs">list</text>
+<text x="209.2" y="55.1" fill="#f5f5f5" textLength="50.4" lengthAdjust="spacingAndGlyphs">--host</text>
+<text x="268.0" y="55.1" fill="#f5f5f5" textLength="33.6" lengthAdjust="spacingAndGlyphs">vm-1</text>
+<text x="16.0" y="73.1" fill="#d4d4d4" textLength="840.0" lengthAdjust="spacingAndGlyphs">{&quot;host&quot;:&quot;vm-1&quot;,&quot;ok&quot;:true,&quot;workers&quot;:[{&quot;cse_id&quot;:&quot;cse_01ExampleAAAAAAAAAAAAAAA&quot;,&quot;pid&quot;:4242,&quot;session_id&quot;</text>
+<text x="16.0" y="91.1" fill="#d4d4d4" textLength="840.0" lengthAdjust="spacingAndGlyphs">:&quot;session_01ExampleAAAAAAAAAAAAAAA&quot;,&quot;url&quot;:&quot;https://claude.ai/code/session_01ExampleAAAAAAAAAAAAAAA&quot;}</text>
+<text x="16.0" y="109.1" fill="#d4d4d4" textLength="16.8" lengthAdjust="spacingAndGlyphs">]}</text>
+<text x="16.0" y="127.1" fill="#2dd4bf" textLength="8.4" lengthAdjust="spacingAndGlyphs" font-weight="600">$</text>
+<text x="32.8" y="127.1" fill="#f5f5f5" textLength="126.0" lengthAdjust="spacingAndGlyphs">remote-sessions</text>
+<text x="167.2" y="127.1" fill="#f5f5f5" textLength="50.4" lengthAdjust="spacingAndGlyphs">attach</text>
+<text x="226.0" y="127.1" fill="#f5f5f5" textLength="268.8" lengthAdjust="spacingAndGlyphs">session_01ExampleAAAAAAAAAAAAAAA</text>
+<text x="16.0" y="145.1" fill="#d4d4d4" textLength="67.2" lengthAdjust="spacingAndGlyphs">attached</text>
+<text x="91.6" y="145.1" fill="#d4d4d4" textLength="16.8" lengthAdjust="spacingAndGlyphs">to</text>
+<text x="116.8" y="145.1" fill="#d4d4d4" textLength="277.2" lengthAdjust="spacingAndGlyphs">session_01ExampleAAAAAAAAAAAAAAA:</text>
+<text x="402.4" y="145.1" fill="#d4d4d4" textLength="33.6" lengthAdjust="spacingAndGlyphs">live</text>
+<text x="444.4" y="145.1" fill="#d4d4d4" textLength="134.4" lengthAdjust="spacingAndGlyphs">(events/stream),</text>
+<text x="587.2" y="145.1" fill="#d4d4d4" textLength="58.8" lengthAdjust="spacingAndGlyphs">message</text>
+<text x="654.4" y="145.1" fill="#d4d4d4" textLength="16.8" lengthAdjust="spacingAndGlyphs">by</text>
+<text x="679.6" y="145.1" fill="#d4d4d4" textLength="67.2" lengthAdjust="spacingAndGlyphs">message,</text>
+<text x="755.2" y="145.1" fill="#d4d4d4" textLength="25.2" lengthAdjust="spacingAndGlyphs">not</text>
+<text x="788.8" y="145.1" fill="#d4d4d4" textLength="42.0" lengthAdjust="spacingAndGlyphs">token</text>
+<text x="839.2" y="145.1" fill="#d4d4d4" textLength="16.8" lengthAdjust="spacingAndGlyphs">by</text>
+<text x="24.4" y="163.1" fill="#d4d4d4" textLength="50.4" lengthAdjust="spacingAndGlyphs">token.</text>
+<text x="83.2" y="163.1" fill="#d4d4d4" textLength="33.6" lengthAdjust="spacingAndGlyphs">Type</text>
+<text x="125.2" y="163.1" fill="#d4d4d4" textLength="8.4" lengthAdjust="spacingAndGlyphs">a</text>
+<text x="142.0" y="163.1" fill="#d4d4d4" textLength="33.6" lengthAdjust="spacingAndGlyphs">line</text>
+<text x="184.0" y="163.1" fill="#d4d4d4" textLength="16.8" lengthAdjust="spacingAndGlyphs">to</text>
+<text x="209.2" y="163.1" fill="#d4d4d4" textLength="33.6" lengthAdjust="spacingAndGlyphs">send</text>
+<text x="251.2" y="163.1" fill="#d4d4d4" textLength="16.8" lengthAdjust="spacingAndGlyphs">it</text>
+<text x="276.4" y="163.1" fill="#d4d4d4" textLength="16.8" lengthAdjust="spacingAndGlyphs">as</text>
+<text x="301.6" y="163.1" fill="#d4d4d4" textLength="8.4" lengthAdjust="spacingAndGlyphs">a</text>
+<text x="318.4" y="163.1" fill="#d4d4d4" textLength="33.6" lengthAdjust="spacingAndGlyphs">user</text>
+<text x="360.4" y="163.1" fill="#d4d4d4" textLength="42.0" lengthAdjust="spacingAndGlyphs">turn;</text>
+<text x="410.8" y="163.1" fill="#d4d4d4" textLength="84.0" lengthAdjust="spacingAndGlyphs">/interrupt</text>
+<text x="503.2" y="163.1" fill="#d4d4d4" textLength="8.4" lengthAdjust="spacingAndGlyphs">=</text>
+<text x="520.0" y="163.1" fill="#d4d4d4" textLength="33.6" lengthAdjust="spacingAndGlyphs">Esc;</text>
+<text x="562.0" y="163.1" fill="#d4d4d4" textLength="42.0" lengthAdjust="spacingAndGlyphs">/quit</text>
+<text x="612.4" y="163.1" fill="#d4d4d4" textLength="16.8" lengthAdjust="spacingAndGlyphs">or</text>
+<text x="637.6" y="163.1" fill="#d4d4d4" textLength="50.4" lengthAdjust="spacingAndGlyphs">Ctrl-C</text>
+<text x="696.4" y="163.1" fill="#d4d4d4" textLength="50.4" lengthAdjust="spacingAndGlyphs">leaves</text>
+<text x="755.2" y="163.1" fill="#d4d4d4" textLength="58.8" lengthAdjust="spacingAndGlyphs">WITHOUT</text>
+<text x="822.4" y="163.1" fill="#d4d4d4" textLength="33.6" lengthAdjust="spacingAndGlyphs">stop</text>
+<text x="16.0" y="181.1" fill="#d4d4d4" textLength="33.6" lengthAdjust="spacingAndGlyphs">ping</text>
+<text x="58.0" y="181.1" fill="#d4d4d4" textLength="25.2" lengthAdjust="spacingAndGlyphs">the</text>
+<text x="91.6" y="181.1" fill="#d4d4d4" textLength="67.2" lengthAdjust="spacingAndGlyphs">session.</text>
+<text x="167.2" y="181.1" fill="#d4d4d4" textLength="42.0" lengthAdjust="spacingAndGlyphs">Event</text>
+<text x="217.6" y="181.1" fill="#d4d4d4" textLength="33.6" lengthAdjust="spacingAndGlyphs">text</text>
+<text x="259.6" y="181.1" fill="#d4d4d4" textLength="16.8" lengthAdjust="spacingAndGlyphs">is</text>
+<text x="284.8" y="181.1" fill="#d4d4d4" textLength="75.6" lengthAdjust="spacingAndGlyphs">untrusted</text>
+<text x="368.8" y="181.1" fill="#d4d4d4" textLength="25.2" lengthAdjust="spacingAndGlyphs">and</text>
+<text x="402.4" y="181.1" fill="#d4d4d4" textLength="42.0" lengthAdjust="spacingAndGlyphs">shown</text>
+<text x="452.8" y="181.1" fill="#d4d4d4" textLength="16.8" lengthAdjust="spacingAndGlyphs">as</text>
+<text x="478.0" y="181.1" fill="#d4d4d4" textLength="42.0" lengthAdjust="spacingAndGlyphs">plain</text>
+<text x="528.4" y="181.1" fill="#d4d4d4" textLength="42.0" lengthAdjust="spacingAndGlyphs">text.</text>
+<text x="16.0" y="199.1" fill="#d4d4d4" textLength="42.0" lengthAdjust="spacingAndGlyphs">user&gt;</text>
+<text x="66.4" y="199.1" fill="#d4d4d4" textLength="25.2" lengthAdjust="spacingAndGlyphs">run</text>
+<text x="100.0" y="199.1" fill="#d4d4d4" textLength="25.2" lengthAdjust="spacingAndGlyphs">the</text>
+<text x="133.6" y="199.1" fill="#d4d4d4" textLength="42.0" lengthAdjust="spacingAndGlyphs">tests</text>
+<text x="184.0" y="199.1" fill="#d4d4d4" textLength="25.2" lengthAdjust="spacingAndGlyphs">and</text>
+<text x="217.6" y="199.1" fill="#d4d4d4" textLength="25.2" lengthAdjust="spacingAndGlyphs">fix</text>
+<text x="251.2" y="199.1" fill="#d4d4d4" textLength="33.6" lengthAdjust="spacingAndGlyphs">what</text>
+<text x="293.2" y="199.1" fill="#d4d4d4" textLength="42.0" lengthAdjust="spacingAndGlyphs">fails</text>
+<text x="16.0" y="217.1" fill="#d4d4d4" textLength="58.8" lengthAdjust="spacingAndGlyphs">claude&gt;</text>
+<text x="83.2" y="217.1" fill="#d4d4d4" textLength="8.4" lengthAdjust="spacingAndGlyphs">I</text>
+<text x="100.0" y="217.1" fill="#d4d4d4" textLength="33.6" lengthAdjust="spacingAndGlyphs">will</text>
+<text x="142.0" y="217.1" fill="#d4d4d4" textLength="25.2" lengthAdjust="spacingAndGlyphs">run</text>
+<text x="175.6" y="217.1" fill="#d4d4d4" textLength="25.2" lengthAdjust="spacingAndGlyphs">the</text>
+<text x="209.2" y="217.1" fill="#d4d4d4" textLength="33.6" lengthAdjust="spacingAndGlyphs">test</text>
+<text x="251.2" y="217.1" fill="#d4d4d4" textLength="42.0" lengthAdjust="spacingAndGlyphs">suite</text>
+<text x="301.6" y="217.1" fill="#d4d4d4" textLength="50.4" lengthAdjust="spacingAndGlyphs">first.</text>
+<text x="16.0" y="235.1" fill="#d4d4d4" textLength="84.0" lengthAdjust="spacingAndGlyphs">Permission</text>
+<text x="108.4" y="235.1" fill="#d4d4d4" textLength="84.0" lengthAdjust="spacingAndGlyphs">requested:</text>
+<text x="200.8" y="235.1" fill="#d4d4d4" textLength="33.6" lengthAdjust="spacingAndGlyphs">Bash</text>
+<text x="242.8" y="235.1" fill="#d4d4d4" textLength="126.0" lengthAdjust="spacingAndGlyphs">{&quot;command&quot;:&quot;npm</text>
+<text x="377.2" y="235.1" fill="#d4d4d4" textLength="50.4" lengthAdjust="spacingAndGlyphs">test&quot;}</text>
+<text x="16.0" y="253.1" fill="#d4d4d4" textLength="50.4" lengthAdjust="spacingAndGlyphs">Allow?</text>
+<text x="74.8" y="253.1" fill="#d4d4d4" textLength="42.0" lengthAdjust="spacingAndGlyphs">[y/n]</text>
+<text x="125.2" y="253.1" fill="#f5f5f5" textLength="8.4" lengthAdjust="spacingAndGlyphs" font-weight="600">y</text>
+<text x="16.0" y="271.1" fill="#737373">·</text>
+<text x="32.8" y="271.1" fill="#737373" textLength="58.8" lengthAdjust="spacingAndGlyphs">allowed</text>
+<text x="16.0" y="289.1" fill="#737373" textLength="16.8" lengthAdjust="spacingAndGlyphs">^C</text>
+<text x="16.0" y="307.1" fill="#2dd4bf" textLength="8.4" lengthAdjust="spacingAndGlyphs" font-weight="600">$</text>
+<text x="32.8" y="307.1" fill="#f5f5f5" textLength="126.0" lengthAdjust="spacingAndGlyphs">remote-sessions</text>
+<text x="167.2" y="307.1" fill="#f5f5f5" textLength="50.4" lengthAdjust="spacingAndGlyphs">attach</text>
+<text x="226.0" y="307.1" fill="#f5f5f5" textLength="268.8" lengthAdjust="spacingAndGlyphs">session_01ExampleAAAAAAAAAAAAAAA</text>
+<text x="503.2" y="307.1" fill="#f5f5f5" textLength="42.0" lengthAdjust="spacingAndGlyphs">--tui</text>
+<text x="32.8" y="325.1" fill="#fbbf24" textLength="33.6" lengthAdjust="spacingAndGlyphs">(the</text>
+<text x="74.8" y="325.1" fill="#fbbf24" textLength="92.4" lengthAdjust="spacingAndGlyphs">full-screen</text>
+<text x="175.6" y="325.1" fill="#fbbf24" textLength="33.6" lengthAdjust="spacingAndGlyphs">view</text>
+<text x="217.6" y="325.1" fill="#fbbf24" textLength="16.8" lengthAdjust="spacingAndGlyphs">of</text>
+<text x="242.8" y="325.1" fill="#fbbf24" textLength="42.0" lengthAdjust="spacingAndGlyphs">frame</text>
+<text x="293.2" y="325.1" fill="#fbbf24" textLength="8.4" lengthAdjust="spacingAndGlyphs">c</text>
+<text x="310.0" y="325.1" fill="#fbbf24" textLength="33.6" lengthAdjust="spacingAndGlyphs">runs</text>
+<text x="352.0" y="325.1" fill="#fbbf24" textLength="42.0" lengthAdjust="spacingAndGlyphs">here;</text>
+<text x="402.4" y="325.1" fill="#fbbf24" textLength="50.4" lengthAdjust="spacingAndGlyphs">Ctrl-C</text>
+<text x="461.2" y="325.1" fill="#fbbf24" textLength="50.4" lengthAdjust="spacingAndGlyphs">leaves</text>
+<text x="520.0" y="325.1" fill="#fbbf24" textLength="25.2" lengthAdjust="spacingAndGlyphs">it)</text>
+<text x="16.0" y="343.1" fill="#d4d4d4" textLength="33.6" lengthAdjust="spacingAndGlyphs">left</text>
+<text x="58.0" y="343.1" fill="#d4d4d4" textLength="25.2" lengthAdjust="spacingAndGlyphs">the</text>
+<text x="91.6" y="343.1" fill="#d4d4d4" textLength="58.8" lengthAdjust="spacingAndGlyphs">session</text>
+<text x="158.8" y="343.1" fill="#d4d4d4" textLength="58.8" lengthAdjust="spacingAndGlyphs">running</text>
+<text x="16.0" y="361.1" fill="#2dd4bf" textLength="8.4" lengthAdjust="spacingAndGlyphs" font-weight="600">$</text>
+<text x="32.8" y="361.1" fill="#2dd4bf">▏</text>
+</g></svg>

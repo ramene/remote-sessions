@@ -1,0 +1,12 @@
+┌ error ─────────────────────────────────────────────────────────────┐
+│                                                                    │
+│ The Claude sessions API refused this machine as an untrusted       │
+│ device (HTTP 403).                                                 │
+│                                                                    │
+│ press any key to leave (exit code 2)                               │
+└────────────────────────────────────────────────────────────────────┘
+⠋ connecting to session_01Ex……
+──────────────────────────────────────────────────────────────────────
+› message the session, or / for commands
+──────────────────────────────────────────────────────────────────────
+ session_01Ex… │ mac-a │ mode ? │ ○ connecting

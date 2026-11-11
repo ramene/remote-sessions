@@ -1,6 +1,6 @@
 {
   "name": "remote-sessions",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "description": "Serve, list, read, send into and stop Claude Code Remote Control sessions on your own machines, from any Claude Code session.",
   "license": "MIT",
   "author": {

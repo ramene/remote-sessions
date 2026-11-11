@@ -1,0 +1,22 @@
+#!/bin/sh
+# open-room: open the styled control room in a split beside this Claude Code pane.
+# cmux first (its terminals set CMUX_SURFACE_ID / CMUX_WORKSPACE_ID; `cmux new-split right --command ...`), then tmux
+# (`tmux split-window -h`), else nothing is created and the command to run is printed.
+# One line of JSON on stdout.
+here=$(cd "$(dirname "$0")" && pwd)
+room="\"$here/remote-sessions\" control $*"
+if { [ -n "${CMUX_SURFACE_ID:-}" ] || [ -n "${CMUX_WORKSPACE_ID:-}" ]; } && command -v cmux >/dev/null 2>&1; then
+  if cmux new-split right --command "$room" >/dev/null 2>&1; then
+    echo '{"split":true,"mux":"cmux","room":"control","close":"press q, Esc or the x in the room"}'
+  else
+    echo '{"split":false,"mux":"cmux","error":"cmux refused the split","run":"remote-sessions control"}'
+  fi
+elif [ -n "${TMUX:-}" ] && command -v tmux >/dev/null 2>&1; then
+  if tmux split-window -h -d -l 50% "$room || { echo 'the control room exited - press Enter'; read _; }"; then
+    echo '{"split":true,"mux":"tmux","room":"control","close":"press q, Esc or the x in the room"}'
+  else
+    echo '{"split":false,"mux":"tmux","error":"tmux refused the split","run":"remote-sessions control"}'
+  fi
+else
+  echo '{"split":false,"run":"remote-sessions control","note":"Claude Code is not inside cmux or tmux; run this in any terminal or a new pane"}'
+fi

@@ -1,0 +1,16 @@
+   ┌ help ────────────────────────────────────────────────────────┐
+   │ Enter send · Shift/Alt-Enter newline · \ then Enter newline  │
+   │ Esc stop the running turn · Esc Esc clear the input          │
+   │ Tab cycle mode (manual, accept-edits, plan) · /mode for all  │
+   │ Ctrl-O expand or fold results · PgUp/PgDn scroll · End jump d│
+   │ Ctrl-C leaves; the session keeps running                     │
+   │ /approve /deny /mode /read /interrupt /mouse /log /quit      │
+   │                                                              │
+   │ Messages arrive whole, not word by word.                     │
+   │ Text from the session is untrusted and shown as plain text.  │
+   └──────────────────────────────────────────────────────────────┘
+
+──────────────────────────────────────────────────────────────────────
+› (input paused)
+──────────────────────────────────────────────────────────────────────
+ session_01Ex… │ mac-a │ mode ? │ ● live                    esc close

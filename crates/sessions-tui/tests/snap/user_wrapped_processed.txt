@@ -1,0 +1,5 @@
+> please look at the failing
+  test in the stream reader
+  and tell me what is wrong
+  with it
+  second line ✓

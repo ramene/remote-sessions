@@ -14,6 +14,9 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 pub mod attach;
+pub mod control_room;
+pub use sessions_tui::logo;
+pub mod tui;
 pub mod stream;
 pub mod mcp;
 pub mod recordings;
@@ -128,7 +131,7 @@ pub struct Args {
     pub switches: Vec<String>,
 }
 const VALUE_FLAGS: [&str; 17] = ["from", "for", "request", "interval", "cast", "size", "message", "after", "host", "name", "out", "idle-max", "mp4", "kind", "session", "bind", "token-file"];
-const SWITCH_FLAGS: [&str; 4] = ["yes", "check", "no-endcard", "poll"];
+const SWITCH_FLAGS: [&str; 12] = ["yes", "check", "no-endcard", "poll", "tui", "no-color", "ascii", "once", "demo", "ansi", "all", "routines"];
 
 pub fn parse_args(args: &[String]) -> Result<Args> {
     let mut out = Args::default();

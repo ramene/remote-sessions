@@ -13,6 +13,8 @@
 - [Setup: serve a Remote Control session](#setup-serve-a-remote-control-session)
 - [The verbs, with examples](#the-verbs-with-examples)
 - [Attach from another machine](#attach-from-another-machine)
+- [Control room](#control-room)
+- [Attach from tmux or cmux](#attach-from-tmux-or-cmux)
 - [Stop semantics](#stop-semantics)
 - [Recording](#recording)
 - [Limits](#limits)
@@ -188,6 +190,99 @@ Not covered by live checks: `deny`, and `attach` itself (unit-tested against a f
 A `403` that says the device is untrusted prints a clear sentence. Claude Code's own client re-enrolls a device by signing a challenge; this tool does not implement signing, so enroll that machine from Claude Code first.
 
 MCP tools: `remote_pending`, `remote_approve`, `remote_deny`, `remote_say`.
+
+### `attach --tui`
+
+```console
+$ remote-sessions attach session_01ExampleAAAAAAAAAAAAAAA --tui [--host mac-a] [--no-color] [--ascii]
+```
+
+A full-screen client for the same session: the conversation scrolls above a prompt box, and a permission request opens a modal over the transcript.
+
+```text
+● I checked the failing tests. Two are timing flakes; the third is a real off-by-one.
+
+◆ Bash(make check)
+  ╰ running 4 tests
+    … +38 lines · ctrl-o to expand
+── turn done · 1m 52s · 2 turns ────────────────────────────────
+
+⠹ session is working · 14s
+────────────────────────────────────────────────────────────────
+›
+────────────────────────────────────────────────────────────────
+ session_01Ex… │ mac-a │ manual │ ● live       esc stop · tab mode
+```
+
+| Key | Action |
+|---|---|
+| Enter / Shift-Enter, Alt-Enter | send / new line (also a trailing backslash, then Enter) |
+| Esc | interrupt the running turn (Esc twice clears the input) |
+| Tab | cycle manual, accept-edits, plan; `/mode` reaches the others |
+| Ctrl-O | fold or unfold all tool results |
+| PgUp / PgDn / End | scroll / jump to the newest |
+| Ctrl-C | leave; the session keeps running |
+
+In the permission modal: `1` Allow once, `2` Deny (Enter confirms), `3` or Tab Deny with a reason, Esc denies. Messages arrive whole, not word by word, so the spinner only counts seconds. All text from the session is untrusted and drawn as plain text. Without a terminal, `--tui` falls back to the line-mode `attach`.
+
+## Control room
+
+`control` is one full-screen view over your Remote Control sessions and your cloud sessions. It is open source (MIT), like the rest of this repo.
+
+```console
+$ remote-sessions control                       # this machine
+$ remote-sessions control --host mac-a          # the Remote Control sessions of another machine (ssh)
+$ remote-sessions control --all                 # also the account's own cloud sessions (list --unofficial)
+$ remote-sessions control --routines            # show each routine and its newest runs (off by default; R toggles)
+$ remote-sessions control --no-color --ascii    # no color, ASCII glyphs (NO_COLOR works too)
+$ remote-sessions control --once --size 100x28  # print one frame and exit (--ansi keeps the colors in a pipe)
+$ remote-sessions control --demo                # placeholder sessions only
+```
+
+![The control room: Remote Control and cloud sessions, the selected session below them](docs/images/control-room.svg)
+
+*The control room. Drawn by the real code (`crates/sessions-tui/examples/mock_frames.rs`) with placeholder data.*
+
+![Approve a waiting permission prompt: the box asks for y](docs/images/control-room-approve.svg)
+
+*`a` on a session that waits on a permission prompt: the box asks for `y`. Drawn by the real code with placeholder data.*
+
+![attach --tui: a full-screen client for one session](docs/images/attach-tui.svg)
+
+*Enter drops into the session: `attach --tui` in the same terminal. Drawn by the real code with placeholder data.*
+
+![The plain CLI: list, then attach](docs/images/list-attach.svg)
+
+*The plain CLI without the control room: `list --host`, then `attach`.*
+
+| Key | Action |
+|---|---|
+| Up / Down, `j` / `k` | select a row (the arrows walk Remote Control, then Cloud) |
+| PgUp / PgDn, Home `g` / End `G` | move a page, go to the first or the last row |
+| Tab | go to the next panel |
+| Enter, or a click on the selected row | drop in: `attach --tui` for Remote Control, a two-way view for a cloud session |
+| `a` / `d` | approve / deny the waiting prompt of a Remote Control session, then `y` to confirm (`n` or Esc cancels; Enter never answers a prompt) |
+| `s` | send a follow-up to a cloud session (Enter sends, Esc cancels, Ctrl-U clears the line) |
+| `r` | read every panel again now |
+| `R` | show or hide Routines |
+| `q`, Esc, Ctrl-C, or a click on `x close` | leave the room |
+| mouse wheel | scroll the panel under the pointer |
+
+Remote Control is read every 3 s and cloud every 10 s, one call each. Cloud sessions raise no permission prompts, so there is nothing to approve for them. The room never answers, sends or stops anything on its own. The frames above come from `cargo run -p sessions-tui --example mock_frames > frames.json`, which prints every cell of them (symbol, colors, bold) as JSON.
+
+## Attach from tmux or cmux
+
+`attach --tui` and `control` are plain terminal programs, so they run in any pane of tmux or [cmux](https://cmux.com):
+
+```console
+$ remote-sessions attach session_01ExampleAAAAAAAAAAAAAAA --tui     # in any pane
+$ tmux new-window 'remote-sessions attach session_01ExampleAAAAAAAAAAAAAAA --tui'
+$ cmux new-split right --command 'remote-sessions control'
+```
+
+From Claude Code, the plugin command `/remote-room` opens the control room in a split beside the Claude Code pane: with `cmux new-split right --command ...` inside cmux (its terminals set `CMUX_SURFACE_ID` and `CMUX_WORKSPACE_ID`), else with `tmux split-window -h` inside tmux. Outside both it creates nothing and prints the command to run. In the room, Enter drops into a session in the same pane.
+
+Ctrl-C in `attach --tui`, or `q` / Esc in the room, only leaves the view: the session keeps running.
 
 ## Stop semantics
 

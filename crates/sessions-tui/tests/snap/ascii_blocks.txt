@@ -1,0 +1,6 @@
+> hello v
+* answer with bold
++ Bash(ls)
+  | a
+    ~ +2 lines . ctrl-o to expand
+-- turn done . 3s ----------------------

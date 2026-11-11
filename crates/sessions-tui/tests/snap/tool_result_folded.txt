@@ -1,0 +1,3 @@
+◆ Bash(ls)
+  ╰ line 1
+    … +37 lines · ctrl-o to expand

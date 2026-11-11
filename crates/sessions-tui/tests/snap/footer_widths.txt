@@ -1,0 +1,5 @@
+120| session_01Ex… │ mac-a │ manual │ ● live │ ● rec 00:42                                tab mode · ctrl-o expand · ? help
+ 80| session_01Ex… │ mac-a │ manual │ ● live │ ● rec 00:42
+ 60| session_01Ex… │ mac-a │ manual │ ● live │ ● rec 00:42
+ 40| session_01Ex… │ mac-a │ manual │ ● live
+ 24| sess… │ manual │ ● live

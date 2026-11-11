@@ -1,0 +1,40 @@
+ remote-sessions · control room                                      example-host  ⏸ 2 waiting  ·  ● 1 running  ✕ close
+┌ Remote Control ⏸ 2 waiting ──────────────────────────────────────────────────────────────────────────────────────────┐
+│› ⏸  session_01ExampleAAAAAAAAAAAAAAA  pid 4242   waiting on Edit src/parser.rs                                       │
+│  ○  session_01ExampleBBBBBBBBBBBBBBB  pid 4243   idle                                                                │
+│  ⏸  session_01ExampleCCCCCCCCCCCCCCC  pid 4244   waiting on Bash cargo test --workspace                              │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+└──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌ Cloud ● 1 running ───────────────────────────────────────────────────────────────────────────────────────────────────┐
+│  ●  running    20s  your-org/your-repo      Fix the flaky parser test                                                │
+│  ✓  finished    2h  your-org/docs           Add a docs page for the CLI                                              │
+│  ○  idle       14m  your-org/your-repo      Migrate config to the new schema                                         │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+└──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌ Selected ────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ session_01ExampleAAAAAAAAAAAAAAA                                                                                     │
+│ pid 4242  ⏸ waiting on 1 permission prompt                                                                           │
+│   ⏸ Edit src/parser.rs                                                                                               │
+│ Enter remote-sessions attach session_01ExampleAAAAAAAAAAAAAAA --tui                                                  │
+│                                                                                                                      │
+└──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+ remote 0s ago  ·  cloud 0s ago
+ ↑↓ select  Enter/click attach  a approve  d deny  Tab panel  r refresh  q/Esc/✕ close

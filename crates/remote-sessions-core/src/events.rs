@@ -128,6 +128,87 @@ pub fn finished(body: &Value) -> bool {
     event_list(body).last().is_some_and(|e| e["event_type"] == "result" || e["type"] == "result")
 }
 
+/// One structured item of an event payload: what a UI needs where `parse_event` flattens to text.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Block {
+    /// Plain text of a user or assistant message (or a text content block).
+    Text(String),
+    /// The model asks to run a tool.
+    ToolUse { id: String, name: String, input: Value },
+    /// A tool's answer. `text` is the plain text of its content.
+    ToolResult { tool_use_id: String, text: String, is_error: bool },
+    /// Reasoning blocks carry no readable content; they only show activity.
+    Thinking,
+    /// `control_request`: `subtype` is `can_use_tool`, `set_permission_mode`, `interrupt`, ...
+    ControlRequest { request_id: String, subtype: String, tool_name: String, input: Value, mode: Option<String> },
+    /// `control_response`: closes the request with this id.
+    ControlResponse { request_id: String },
+    /// `control_cancel_request`: withdraws the request with this id.
+    ControlCancel { request_id: String },
+}
+
+/// Plain text of a tool_result `content` (a string or text blocks).
+fn result_text(content: &Value) -> String {
+    match content {
+        Value::String(s) => s.clone(),
+        Value::Array(parts) => parts.iter().filter_map(|p| p["text"].as_str()).collect::<Vec<_>>().join("\n"),
+        _ => String::new(),
+    }
+}
+
+/// The structured blocks of an event (an envelope `{payload: {...}}` or a bare payload), in order. Text is NOT
+/// cleaned here; callers clean what they draw. Event kinds without blocks (result, system, ...) give an empty list.
+pub fn blocks(envelope: &Value) -> Vec<Block> {
+    let p = if envelope["payload"].is_object() { &envelope["payload"] } else { envelope };
+    let s = |v: &Value| v.as_str().unwrap_or("").to_string();
+    match p["type"].as_str().unwrap_or("") {
+        "user" | "assistant" => match &p["message"]["content"] {
+            Value::String(t) => vec![Block::Text(t.clone())],
+            Value::Array(items) => items.iter().filter_map(|b| match b["type"].as_str().unwrap_or("text") {
+                "text" => b["text"].as_str().map(|t| Block::Text(t.to_string())),
+                "tool_use" => Some(Block::ToolUse { id: s(&b["id"]), name: s(&b["name"]), input: b["input"].clone() }),
+                "tool_result" => Some(Block::ToolResult { tool_use_id: s(&b["tool_use_id"]), text: result_text(&b["content"]), is_error: b["is_error"] == true }),
+                "thinking" | "redacted_thinking" => Some(Block::Thinking),
+                _ => None,
+            }).collect(),
+            _ => Vec::new(),
+        },
+        "control_request" => vec![Block::ControlRequest { request_id: s(&p["request_id"]), subtype: s(&p["request"]["subtype"]), tool_name: s(&p["request"]["tool_name"]), input: p["request"]["input"].clone(), mode: p["request"]["mode"].as_str().map(str::to_string) }],
+        "control_response" => vec![Block::ControlResponse { request_id: s(&p["response"]["request_id"]) }],
+        "control_cancel_request" => vec![Block::ControlCancel { request_id: s(&p["request_id"]) }],
+        _ => Vec::new(),
+    }
+}
+
+#[cfg(test)]
+mod blocks_tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn assistant_text_and_tool_use_are_structured() {
+        let b = blocks(&json!({"payload": {"type": "assistant", "message": {"content": [{"type": "thinking", "thinking": ""}, {"type": "text", "text": "On it."}, {"type": "tool_use", "id": "toolu_ex1", "name": "Bash", "input": {"command": "ls"}}]}}}));
+        assert_eq!(b, vec![Block::Thinking, Block::Text("On it.".into()), Block::ToolUse { id: "toolu_ex1".into(), name: "Bash".into(), input: json!({"command": "ls"}) }]);
+    }
+    #[test]
+    fn tool_results_keep_their_link_error_flag_and_text() {
+        let b = blocks(&json!({"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "toolu_ex1", "is_error": true, "content": [{"type": "text", "text": "a"}, {"type": "text", "text": "b"}]}]}}));
+        assert_eq!(b, vec![Block::ToolResult { tool_use_id: "toolu_ex1".into(), text: "a\nb".into(), is_error: true }]);
+        let plain = blocks(&json!({"type": "user", "message": {"content": "hi"}}));
+        assert_eq!(plain, vec![Block::Text("hi".into())]);
+    }
+    #[test]
+    fn control_events_are_structured() {
+        let ask = json!({"type": "control_request", "request_id": "req_ex1", "request": {"subtype": "can_use_tool", "tool_name": "WebFetch", "input": {"url": "https://example.com/"}}});
+        assert_eq!(blocks(&ask), vec![Block::ControlRequest { request_id: "req_ex1".into(), subtype: "can_use_tool".into(), tool_name: "WebFetch".into(), input: json!({"url": "https://example.com/"}), mode: None }]);
+        let mode = blocks(&json!({"type": "control_request", "request_id": "r2", "request": {"subtype": "set_permission_mode", "mode": "plan"}}));
+        assert!(matches!(&mode[0], Block::ControlRequest { mode: Some(m), .. } if m == "plan"));
+        assert_eq!(blocks(&json!({"type": "control_response", "response": {"request_id": "req_ex1"}})), vec![Block::ControlResponse { request_id: "req_ex1".into() }]);
+        assert_eq!(blocks(&json!({"type": "control_cancel_request", "request_id": "req_ex1"})), vec![Block::ControlCancel { request_id: "req_ex1".into() }]);
+        assert!(blocks(&json!({"type": "result"})).is_empty() && blocks(&json!({"nope": 1})).is_empty());
+    }
+}
+
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;

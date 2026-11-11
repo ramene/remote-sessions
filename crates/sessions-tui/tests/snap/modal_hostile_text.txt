@@ -1,0 +1,18 @@
+
+
+
+┌ permission needed ───────────────────────────────────────┐
+│ Bash wants to run:                                       │
+│                                                          │
+│  echo [31mredrtl                                         │
+│                                                          │
+│ › 1  Allow once                                          │
+│   2  Deny   (3: deny with a reason)                      │
+│                                                          │
+│ 1-2 choose · Enter confirm · Esc deny · ctrl-o show full…│
+└──────────────────────────────────────────────────────────┘
+waiting for your decision
+────────────────────────────────────────────────────────────
+› (input paused)
+────────────────────────────────────────────────────────────
+ session_01Ex… │ mac-a │ mode ? │ ● live    waiting for you
