@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- MCP: every tool now declares a `title` and all four tool annotation hints as booleans (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`; MCP spec 2025-06-18). Changed values: `remote_approve` and `remote_deny` are destructive (an approved tool can change or delete files; a denied tool call cannot be redone); `remote_list` and `remote_stop` are open-world (with `host` they run over ssh).
+- Tests: `tests/mcp_tools.rs` has one test per MCP tool, by name: its hints and its argument checks (no network, no ssh, no signal).
+
 ## 0.2.2
 
 - 0.2.2: privacy: examples and defaults no longer name the authors machines or sessions; default recording host is localhost
