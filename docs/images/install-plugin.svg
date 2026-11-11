@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 872 414" width="872" height="414" role="img" aria-label="Add the two Claude Code plugins">
+<title>Add the two Claude Code plugins</title>
+<rect x="0.5" y="0.5" width="871" height="413" rx="10" fill="#0a0a0a" stroke="#262626"/>
+<path d="M10.5 0.5 H861.5 A10 10 0 0 1 871.5 10.5 V30.5 H0.5 V10.5 A10 10 0 0 1 10.5 0.5 Z" fill="#171717"/>
+<line x1="0.5" y1="30.5" x2="871.5" y2="30.5" stroke="#262626"/>
+<circle cx="18" cy="15.5" r="5.5" fill="#fb7185" opacity="0.85"/>
+<circle cx="36" cy="15.5" r="5.5" fill="#fbbf24" opacity="0.85"/>
+<circle cx="54" cy="15.5" r="5.5" fill="#2dd4bf" opacity="0.85"/>
+<text x="436.0" y="20" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="12" fill="#737373">zsh  —  100×20</text>
+<g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="14" xml:space="preserve">
+<text x="16.0" y="55.1" fill="#2dd4bf" textLength="8.4" lengthAdjust="spacingAndGlyphs" font-weight="600">$</text>
+<text x="32.8" y="55.1" fill="#f5f5f5" textLength="50.4" lengthAdjust="spacingAndGlyphs">claude</text>
+<text x="91.6" y="55.1" fill="#f5f5f5" textLength="50.4" lengthAdjust="spacingAndGlyphs">plugin</text>
+<text x="150.4" y="55.1" fill="#f5f5f5" textLength="92.4" lengthAdjust="spacingAndGlyphs">marketplace</text>
+<text x="251.2" y="55.1" fill="#f5f5f5" textLength="25.2" lengthAdjust="spacingAndGlyphs">add</text>
+<text x="284.8" y="55.1" fill="#f5f5f5" textLength="184.8" lengthAdjust="spacingAndGlyphs">ramene/remote-sessions</text>
+<text x="16.0" y="73.1" fill="#737373" textLength="67.2" lengthAdjust="spacingAndGlyphs">Cleaning</text>
+<text x="91.6" y="73.1" fill="#737373" textLength="16.8" lengthAdjust="spacingAndGlyphs">up</text>
+<text x="116.8" y="73.1" fill="#737373" textLength="25.2" lengthAdjust="spacingAndGlyphs">old</text>
+<text x="150.4" y="73.1" fill="#737373" textLength="92.4" lengthAdjust="spacingAndGlyphs">marketplace</text>
+<text x="251.2" y="73.1" fill="#737373" textLength="42.0" lengthAdjust="spacingAndGlyphs">cache</text>
+<text x="293.2" y="73.1" fill="#737373">…</text>
+<text x="16.0" y="91.1" fill="#2dd4bf" font-weight="600">✔</text>
+<text x="32.8" y="91.1" fill="#d4d4d4" textLength="100.8" lengthAdjust="spacingAndGlyphs">Successfully</text>
+<text x="142.0" y="91.1" fill="#d4d4d4" textLength="42.0" lengthAdjust="spacingAndGlyphs">added</text>
+<text x="192.4" y="91.1" fill="#d4d4d4" textLength="100.8" lengthAdjust="spacingAndGlyphs">marketplace:</text>
+<text x="301.6" y="91.1" fill="#d4d4d4" textLength="126.0" lengthAdjust="spacingAndGlyphs">remote-sessions</text>
+<text x="436.0" y="91.1" fill="#d4d4d4" textLength="75.6" lengthAdjust="spacingAndGlyphs">(declared</text>
+<text x="520.0" y="91.1" fill="#d4d4d4" textLength="16.8" lengthAdjust="spacingAndGlyphs">in</text>
+<text x="545.2" y="91.1" fill="#d4d4d4" textLength="33.6" lengthAdjust="spacingAndGlyphs">user</text>
+<text x="587.2" y="91.1" fill="#d4d4d4" textLength="75.6" lengthAdjust="spacingAndGlyphs">settings)</text>
+<text x="16.0" y="109.1" fill="#2dd4bf" textLength="8.4" lengthAdjust="spacingAndGlyphs" font-weight="600">$</text>
+<text x="32.8" y="109.1" fill="#f5f5f5" textLength="50.4" lengthAdjust="spacingAndGlyphs">claude</text>
+<text x="91.6" y="109.1" fill="#f5f5f5" textLength="50.4" lengthAdjust="spacingAndGlyphs">plugin</text>
+<text x="150.4" y="109.1" fill="#f5f5f5" textLength="58.8" lengthAdjust="spacingAndGlyphs">install</text>
+<text x="217.6" y="109.1" fill="#f5f5f5" textLength="260.4" lengthAdjust="spacingAndGlyphs">remote-sessions@remote-sessions</text>
+<text x="16.0" y="127.1" fill="#737373" textLength="84.0" lengthAdjust="spacingAndGlyphs">Installing</text>
+<text x="108.4" y="127.1" fill="#737373" textLength="50.4" lengthAdjust="spacingAndGlyphs">plugin</text>
+<text x="167.2" y="127.1" fill="#737373" textLength="302.4" lengthAdjust="spacingAndGlyphs">&quot;remote-sessions@remote-sessions&quot;...</text>
+<text x="469.6" y="127.1" fill="#2dd4bf" font-weight="600">✔</text>
+<text x="486.4" y="127.1" fill="#d4d4d4" textLength="100.8" lengthAdjust="spacingAndGlyphs">Successfully</text>
+<text x="595.6" y="127.1" fill="#d4d4d4" textLength="75.6" lengthAdjust="spacingAndGlyphs">installed</text>
+<text x="679.6" y="127.1" fill="#d4d4d4" textLength="58.8" lengthAdjust="spacingAndGlyphs">plugin:</text>
+<text x="746.8" y="127.1" fill="#d4d4d4" textLength="109.2" lengthAdjust="spacingAndGlyphs">remote-sessio</text>
+<text x="16.0" y="145.1" fill="#d4d4d4" textLength="151.2" lengthAdjust="spacingAndGlyphs">ns@remote-sessions</text>
+<text x="175.6" y="145.1" fill="#d4d4d4" textLength="58.8" lengthAdjust="spacingAndGlyphs">(scope:</text>
+<text x="242.8" y="145.1" fill="#d4d4d4" textLength="42.0" lengthAdjust="spacingAndGlyphs">user)</text>
+<text x="16.0" y="163.1" fill="#2dd4bf" textLength="8.4" lengthAdjust="spacingAndGlyphs" font-weight="600">$</text>
+<text x="32.8" y="163.1" fill="#f5f5f5" textLength="50.4" lengthAdjust="spacingAndGlyphs">claude</text>
+<text x="91.6" y="163.1" fill="#f5f5f5" textLength="50.4" lengthAdjust="spacingAndGlyphs">plugin</text>
+<text x="150.4" y="163.1" fill="#f5f5f5" textLength="92.4" lengthAdjust="spacingAndGlyphs">marketplace</text>
+<text x="251.2" y="163.1" fill="#f5f5f5" textLength="25.2" lengthAdjust="spacingAndGlyphs">add</text>
+<text x="284.8" y="163.1" fill="#f5f5f5" textLength="176.4" lengthAdjust="spacingAndGlyphs">ramene/cloud-sessions</text>
+<text x="16.0" y="181.1" fill="#737373" textLength="67.2" lengthAdjust="spacingAndGlyphs">Cleaning</text>
+<text x="91.6" y="181.1" fill="#737373" textLength="16.8" lengthAdjust="spacingAndGlyphs">up</text>
+<text x="116.8" y="181.1" fill="#737373" textLength="25.2" lengthAdjust="spacingAndGlyphs">old</text>
+<text x="150.4" y="181.1" fill="#737373" textLength="92.4" lengthAdjust="spacingAndGlyphs">marketplace</text>
+<text x="251.2" y="181.1" fill="#737373" textLength="42.0" lengthAdjust="spacingAndGlyphs">cache</text>
+<text x="293.2" y="181.1" fill="#737373">…</text>
+<text x="16.0" y="199.1" fill="#2dd4bf" font-weight="600">✔</text>
+<text x="32.8" y="199.1" fill="#d4d4d4" textLength="100.8" lengthAdjust="spacingAndGlyphs">Successfully</text>
+<text x="142.0" y="199.1" fill="#d4d4d4" textLength="42.0" lengthAdjust="spacingAndGlyphs">added</text>
+<text x="192.4" y="199.1" fill="#d4d4d4" textLength="100.8" lengthAdjust="spacingAndGlyphs">marketplace:</text>
+<text x="301.6" y="199.1" fill="#d4d4d4" textLength="117.6" lengthAdjust="spacingAndGlyphs">cloud-sessions</text>
+<text x="427.6" y="199.1" fill="#d4d4d4" textLength="75.6" lengthAdjust="spacingAndGlyphs">(declared</text>
+<text x="511.6" y="199.1" fill="#d4d4d4" textLength="16.8" lengthAdjust="spacingAndGlyphs">in</text>
+<text x="536.8" y="199.1" fill="#d4d4d4" textLength="33.6" lengthAdjust="spacingAndGlyphs">user</text>
+<text x="578.8" y="199.1" fill="#d4d4d4" textLength="75.6" lengthAdjust="spacingAndGlyphs">settings)</text>
+<text x="16.0" y="217.1" fill="#2dd4bf" textLength="8.4" lengthAdjust="spacingAndGlyphs" font-weight="600">$</text>
+<text x="32.8" y="217.1" fill="#f5f5f5" textLength="50.4" lengthAdjust="spacingAndGlyphs">claude</text>
+<text x="91.6" y="217.1" fill="#f5f5f5" textLength="50.4" lengthAdjust="spacingAndGlyphs">plugin</text>
+<text x="150.4" y="217.1" fill="#f5f5f5" textLength="58.8" lengthAdjust="spacingAndGlyphs">install</text>
+<text x="217.6" y="217.1" fill="#f5f5f5" textLength="243.6" lengthAdjust="spacingAndGlyphs">cloud-sessions@cloud-sessions</text>
+<text x="16.0" y="235.1" fill="#737373" textLength="84.0" lengthAdjust="spacingAndGlyphs">Installing</text>
+<text x="108.4" y="235.1" fill="#737373" textLength="50.4" lengthAdjust="spacingAndGlyphs">plugin</text>
+<text x="167.2" y="235.1" fill="#737373" textLength="285.6" lengthAdjust="spacingAndGlyphs">&quot;cloud-sessions@cloud-sessions&quot;...</text>
+<text x="452.8" y="235.1" fill="#2dd4bf" font-weight="600">✔</text>
+<text x="469.6" y="235.1" fill="#d4d4d4" textLength="100.8" lengthAdjust="spacingAndGlyphs">Successfully</text>
+<text x="578.8" y="235.1" fill="#d4d4d4" textLength="75.6" lengthAdjust="spacingAndGlyphs">installed</text>
+<text x="662.8" y="235.1" fill="#d4d4d4" textLength="58.8" lengthAdjust="spacingAndGlyphs">plugin:</text>
+<text x="730.0" y="235.1" fill="#d4d4d4" textLength="126.0" lengthAdjust="spacingAndGlyphs">cloud-sessions@</text>
+<text x="16.0" y="253.1" fill="#d4d4d4" textLength="117.6" lengthAdjust="spacingAndGlyphs">cloud-sessions</text>
+<text x="142.0" y="253.1" fill="#d4d4d4" textLength="58.8" lengthAdjust="spacingAndGlyphs">(scope:</text>
+<text x="209.2" y="253.1" fill="#d4d4d4" textLength="42.0" lengthAdjust="spacingAndGlyphs">user)</text>
+<text x="16.0" y="271.1" fill="#2dd4bf" textLength="8.4" lengthAdjust="spacingAndGlyphs" font-weight="600">$</text>
+</g></svg>

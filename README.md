@@ -8,6 +8,7 @@
 
 ## Contents
 
+- [Getting started](#getting-started)
 - [What it is, and how it differs from cloud-sessions](#what-it-is-and-how-it-differs-from-cloud-sessions)
 - [Install](#install)
 - [Setup: serve a Remote Control session](#setup-serve-a-remote-control-session)
@@ -21,6 +22,12 @@
 - [Security model](#security-model)
 - [License](#license)
 - [Contributing](#contributing)
+
+## Getting started
+
+![Install flow: brew, binaries on PATH, claude plugin, then /remote-room or attach --tui](docs/images/install-flow.svg)
+
+Install with Homebrew (`brew install ramene/tap/remote-sessions`) or as a Claude Code plugin (`claude plugin marketplace add ramene/remote-sessions`, then `claude plugin install remote-sessions@remote-sessions`). Then run `/remote-room` in Claude Code, or `remote-sessions attach <session> --tui` in a terminal. The step-by-step guide, with a picture for each step (install, login, first steps, the control room, tmux and cmux, cloud-sessions), is [docs/getting-started.md](docs/getting-started.md).
 
 ## What it is, and how it differs from cloud-sessions
 
