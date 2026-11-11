@@ -260,7 +260,7 @@ dependencies = [
 
 [[package]]
 name = "remote-sessions-cli"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "remote-sessions-core",
  "serde_json",
@@ -268,7 +268,7 @@ dependencies = [
 
 [[package]]
 name = "remote-sessions-core"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "chrono",
  "serde",
