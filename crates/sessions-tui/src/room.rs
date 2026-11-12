@@ -49,15 +49,26 @@ pub enum RState {
     Unreadable(String),
     /// No claude.ai login, so what the session waits on cannot be read.
     Unknown,
+    /// Not a session: the host of this row could not be listed (the reason, e.g. "ssh timed out").
+    HostDown(String),
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct RemoteRow {
+    /// The machine that runs the session; empty when the room lists one machine only (no host column).
+    pub host: String,
     pub id: String,
     pub pid: Option<u32>,
     pub state: RState,
     /// Newest first.
     pub prompts: Vec<PromptInfo>,
+}
+
+impl RemoteRow {
+    /// A row that stands for a host that could not be listed, not for a session: never selected.
+    pub fn is_host_down(&self) -> bool {
+        matches!(self.state, RState::HostDown(_))
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -145,6 +156,8 @@ pub enum CloudStatus {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct RemoteSnapshot {
+    /// The machines listed, in order, when the room lists more than one (empty: one machine, no host column).
+    pub hosts: Vec<String>,
     pub rows: Vec<RemoteRow>,
     pub status: RemoteStatus,
 }
@@ -485,6 +498,8 @@ pub struct RoomState {
     pub host: String,
     pub remote: Vec<RemoteRow>,
     pub remote_status: RemoteStatus,
+    /// The machines listed (several machines only), in order, for the per-host counts in the panel title.
+    pub remote_hosts: Vec<String>,
     pub remote_at_ms: Option<u64>,
     pub cloud: Vec<CloudRow>,
     pub cloud_status: CloudStatus,
@@ -517,6 +532,7 @@ impl RoomState {
             host: one_line(host, 24),
             remote: vec![],
             remote_status: RemoteStatus::Loading,
+            remote_hosts: vec![],
             remote_at_ms: None,
             cloud: vec![],
             cloud_status: CloudStatus::Loading,
@@ -547,7 +563,7 @@ impl RoomState {
     /// Every row in the order the arrow keys walk: Remote Control first, then Cloud, then the extra panels.
     pub fn order(&self) -> Vec<Sel> {
         let extra = self.panels.iter().enumerate().flat_map(|(k, p)| p.rows.iter().map(move |r| Sel::Panel(k, r.id.clone())));
-        self.remote.iter().map(|r| Sel::Remote(r.id.clone())).chain(self.cloud.iter().filter(|c| !c.is_group()).map(|c| Sel::Cloud(c.id.clone()))).chain(extra).collect()
+        self.remote.iter().filter(|r| !r.is_host_down()).map(|r| Sel::Remote(r.id.clone())).chain(self.cloud.iter().filter(|c| !c.is_group()).map(|c| Sel::Cloud(c.id.clone()))).chain(extra).collect()
     }
     pub fn remote_row(&self, id: &str) -> Option<&RemoteRow> {
         self.remote.iter().find(|r| r.id == id)
@@ -663,6 +679,7 @@ impl RoomState {
     }
 
     fn apply_remote(&mut self, snap: RemoteSnapshot) {
+        self.remote_hosts = snap.hosts.iter().map(|h| one_line(h, 40)).collect();
         self.remote = snap.rows.into_iter().map(clean_remote).collect();
         self.remote_status = snap.status;
         self.remote_at_ms = Some(self.now_ms);
@@ -745,8 +762,10 @@ impl RoomState {
 
 fn clean_remote(mut r: RemoteRow) -> RemoteRow {
     r.id = one_line(&r.id, 100);
+    r.host = one_line(&r.host, 40);
     r.state = match r.state {
         RState::Unreadable(e) => RState::Unreadable(one_line(&e, 80)),
+        RState::HostDown(e) => RState::HostDown(one_line(&e, 80)),
         s => s,
     };
     for p in &mut r.prompts {
@@ -991,7 +1010,7 @@ fn act_on(s: &mut RoomState, act: Act) -> Vec<RoomEffect> {
             let n = s.n_panels();
             let cur = s.sel.as_ref().map_or(n - 1, Sel::panel);
             let first = |p: usize| match p {
-                0 => s.remote.first().map(|r| Sel::Remote(r.id.clone())),
+                0 => s.remote.iter().find(|r| !r.is_host_down()).map(|r| Sel::Remote(r.id.clone())),
                 1 => s.cloud.iter().find(|c| !c.is_group()).map(|c| Sel::Cloud(c.id.clone())),
                 k => s.panels.get(k - 2).and_then(|v| v.rows.first()).map(|r| Sel::Panel(k - 2, r.id.clone())),
             };
@@ -1210,7 +1229,7 @@ fn layout_core(area: Rect, s: &RoomState) -> Layout {
     caps[0] = rh.saturating_sub(2) as usize;
     caps[1] = ch.saturating_sub(2) as usize;
     let mut rows = Vec::new();
-    for (p, panel, ids) in [(0usize, remote, s.remote.iter().map(|r| Some(Sel::Remote(r.id.clone()))).collect::<Vec<_>>()), (1, cloud, s.cloud.iter().map(|c| (!c.is_group()).then(|| Sel::Cloud(c.id.clone()))).collect())] {
+    for (p, panel, ids) in [(0usize, remote, s.remote.iter().map(|r| (!r.is_host_down()).then(|| Sel::Remote(r.id.clone()))).collect::<Vec<_>>()), (1, cloud, s.cloud.iter().map(|c| (!c.is_group()).then(|| Sel::Cloud(c.id.clone()))).collect())] {
         for (n, sel) in ids.into_iter().skip(s.top_of(p)).take(caps[p]).enumerate() {
             let Some(sel) = sel else { continue };
             rows.push((Rect { x: panel.x + 1, y: panel.y + 1 + n as u16, width: panel.width.saturating_sub(2), height: 1 }, sel));
@@ -1283,7 +1302,7 @@ fn layout_n(area: Rect, s: &RoomState, avail: u16, panels: &[usize]) -> Layout {
     let mut rows = Vec::new();
     for &p in panels {
         let ids: Vec<Option<Sel>> = match p {
-            0 => s.remote.iter().map(|r| Some(Sel::Remote(r.id.clone()))).collect(),
+            0 => s.remote.iter().map(|r| (!r.is_host_down()).then(|| Sel::Remote(r.id.clone()))).collect(),
             1 => s.cloud.iter().map(|c| (!c.is_group()).then(|| Sel::Cloud(c.id.clone()))).collect(),
             k => s.panels[k - 2].rows.iter().map(|r| Some(Sel::Panel(k - 2, r.id.clone()))).collect(),
         };
@@ -1341,15 +1360,28 @@ fn finish_row(mut spans: Vec<Span<'static>>, w: usize, sel: bool, th: &Theme) ->
     line
 }
 
+/// Width of the host column (shown only when the room lists more than one machine).
+pub const HOST_W: usize = 12;
+
 pub fn remote_line(r: &RemoteRow, w: usize, sel: bool, th: &Theme) -> Line<'static> {
     let (badge, bstyle) = match &r.state {
         RState::Waiting => (th.pause_glyph(), th.warn()),
         RState::Idle => (th.ring(), th.dim()),
-        RState::Unreadable(_) => (th.cross(), th.error()),
+        RState::Unreadable(_) | RState::HostDown(_) => (th.cross(), th.error()),
         RState::Unknown => ("?", th.dim()),
     };
     let mut spans = vec![lead(sel, th), sp(cell(badge, 3), bstyle)];
-    let body = w.saturating_sub(5);
+    let mut body = w.saturating_sub(5);
+    let column = !r.host.is_empty() && body >= 30;
+    if column {
+        spans.push(sp(format!("{} ", cell(&r.host, HOST_W)), th.accent2()));
+        body -= HOST_W + 1;
+    }
+    if let RState::HostDown(e) = &r.state {
+        let text = if column { e.clone() } else { format!("{}: {e}", r.host) };
+        spans.push(sp(truncate(&text, body), th.error()));
+        return finish_row(spans, w, false, th);
+    }
     let id_w = if body < 40 { body.min(width(&r.id)).max(8).min(body) } else { width(&r.id).min(body.saturating_sub(24)).max(14).min(body) };
     let id_style = if sel { th.bold() } else { Style::default() };
     spans.push(sp(cell(&r.id, id_w), id_style));
@@ -1369,7 +1401,7 @@ pub fn remote_line(r: &RemoteRow, w: usize, sel: bool, th: &Theme) -> Line<'stat
                 None => ("waiting".to_string(), th.warn()),
             },
             RState::Idle => ("idle".to_string(), th.dim()),
-            RState::Unreadable(e) => (format!("unreadable: {e}"), th.error()),
+            RState::Unreadable(e) | RState::HostDown(e) => (format!("unreadable: {e}"), th.error()),
             RState::Unknown => ("unknown (no claude.ai login)".to_string(), th.dim()),
         };
         spans.push(sp(format!("  {}", truncate(text.trim_end(), left - 2)), style));
@@ -1463,6 +1495,19 @@ fn draw_remote(f: &mut Frame, l: &Layout, s: &RoomState, th: &Theme) {
     if waiting > 0 {
         title.push(sp(format!("{} {} waiting ", th.pause_glyph(), waiting), th.warn()));
     }
+    // Several machines: the sessions per host, and an x for a host that could not be listed.
+    let mut per_host: Vec<(&str, usize, bool)> = s.remote_hosts.iter().map(|h| (h.as_str(), 0, false)).collect();
+    for r in s.remote.iter().filter(|r| !r.host.is_empty()) {
+        let down = r.is_host_down();
+        match per_host.iter_mut().find(|h| h.0 == r.host) {
+            Some(h) => { h.1 += usize::from(!down); h.2 |= down; }
+            None => per_host.push((&r.host, usize::from(!down), down)),
+        }
+    }
+    if !per_host.is_empty() {
+        let parts: Vec<String> = per_host.iter().map(|(h, n, down)| if *down { format!("{h} {}", th.cross()) } else { format!("{h} {n}") }).collect();
+        title.push(sp(format!("{} ", parts.join(&format!(" {} ", th.sep().trim()))), th.dim()));
+    }
     let block = panel_block(title, range_note(s.top[0], l.caps[0], s.remote.len()), focused, th);
     let inner = block.inner(l.remote);
     f.render_widget(block, l.remote);
@@ -1473,6 +1518,7 @@ fn draw_remote(f: &mut Frame, l: &Layout, s: &RoomState, th: &Theme) {
             RemoteStatus::Loading => message_line("reading ...", th.dim(), w),
             RemoteStatus::Failed(e) => message_line(&format!("could not list sessions: {e}"), th.error(), w),
             RemoteStatus::NoLogin => message_line("no claude.ai login: sign in to Claude Code, or set REMOTE_SESSIONS_TOKEN", th.warn(), w),
+            RemoteStatus::Ready if !s.remote_hosts.is_empty() => message_line("no Remote Control session on these machines (claude remote-control)", th.dim(), w),
             RemoteStatus::Ready => message_line("no Remote Control session is served here (claude remote-control)", th.dim(), w),
         });
     } else {
@@ -1638,6 +1684,7 @@ fn detail_lines(s: &RoomState, w: usize, th: &Theme) -> Vec<Line<'static>> {
                 RState::Idle => "idle: nothing waiting on you".into(),
                 RState::Unreadable(e) => format!("unreadable: {e}"),
                 RState::Unknown => "unknown: no claude.ai login to read its prompts".into(),
+                RState::HostDown(e) => format!("{}: {e}", r.host),
             };
             let pid = r.pid.map(|p| format!("pid {p}  ")).unwrap_or_default();
             let st = match r.state {

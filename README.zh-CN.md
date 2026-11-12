@@ -15,6 +15,7 @@
 - [停止的语义](#停止的语义)
 - [录制](#录制)
 - [限制](#限制)
+- [安全与信任](#安全与信任)
 - [安全模型](#安全模型)
 - [许可证](#许可证)
 - [参与贡献](#参与贡献)
@@ -67,7 +68,8 @@ claude plugin install remote-sessions@remote-sessions
 | `REMOTE_SESSIONS_BIN` | 插件启动器 | 要运行的可执行文件路径 |
 | `REMOTE_SESSIONS_TOKEN` | `events` | API token；否则从 `~/.config/remote-sessions/token`（权限 0600）读取。在 Claude Code 内部，`/remote-read` 不需要 token |
 | `REMOTE_SESSIONS_CLAUDE` | `send`、`serve` | `claude` 可执行文件的路径 |
-| `REMOTE_SESSIONS_API` | `events` | API 基础 URL（默认 `https://api.anthropic.com`） |
+| `REMOTE_SESSIONS_API` | `events` | API 基础 URL：只接受 `https://api.anthropic.com`（明文 http 仅限回环测试服务器） |
+| `REMOTE_SESSIONS_MCP_APPROVE` | `mcp` | 设为 `1` 时 MCP 工具 `remote_approve` 和 `remote_deny` 才会执行；默认关闭（见“安全与信任”） |
 | `REMOTE_SESSIONS_RECORDING_HOSTS` | `recordings` | 以逗号分隔的 ssh 主机列表（默认 `localhost`：请设置为你自己的主机） |
 
 所有命令都在标准输出打印 JSON。失败时打印 `{"ok":false,"error":"..."}` 并以状态码 1 退出。
@@ -280,6 +282,10 @@ curl -sN -H "Authorization: Bearer $TOKEN" "http://127.0.0.1:3790/recordings/<id
 - 录制主机默认为 `localhost`：请通过 `REMOTE_SESSIONS_RECORDING_HOSTS` 设置为你自己的主机。
 - Pane 的 `stop` 会隐藏录制脚本的输出，只要找到了该录制就报告 ok。
 - 目前仅支持 macOS；插件启动器会查找 `$REMOTE_SESSIONS_BIN` 或 `PATH` 上的 `remote-sessions`。
+
+## 安全与信任
+
+remote-sessions 不索取你的登录凭据，不在任何服务器上存储它，也不接收它：代码中没有我们自己的服务器。它只读取本机已有的登录（`REMOTE_SESSIONS_TOKEN`、`~/.config/remote-sessions/token`、macOS 钥匙串、`~/.claude/.credentials.json`），并且只把 token 发送到 `https://api.anthropic.com`；其他 API 地址一律拒绝（回环测试服务器除外）。代码中的主机：`api.anthropic.com`（会话 API，唯一收到 token 的主机）、`claude.ai`（仅用于链接）、`github.com`（插件一次性下载发布的二进制文件并校验 SHA-256，不发送登录凭据）、`127.0.0.1`（可选的 `recordings serve`）。token 从不打印、从不记录；会话文本是不可信数据。从 0.3.1 起，MCP 工具 `remote_approve` 和 `remote_deny` 默认不执行任何操作，只返回命令，由你自己运行（`remote-sessions approve <session> --request <id>`、`/remote-approve`，或 `remote-sessions control` 中的 `a` / `d`）；只有在启动 Claude Code 的环境中设置 `REMOTE_SESSIONS_MCP_APPROVE=1` 才允许它们执行（不推荐）。已知风险：通过 MCP 的提示注入；在你的登录凭据旁运行我们的二进制文件（MIT 源码、SHA-256 校验和、由本公开仓库构建）；未公开的 API（Anthropic 可以更改它，其关于第三方工具使用 claude.ai 登录的条款适用于你）；本地权限（能读取钥匙串或该文件的程序本来就能做到这些，本工具不增加任何权限）。报告安全问题：请在本仓库创建私密安全公告 https://github.com/ramene/remote-sessions/security/advisories/new ，不要公开提 issue。
 
 ## 安全模型
 

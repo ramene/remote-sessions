@@ -135,3 +135,41 @@ fn remote_check() {
     assert!(!is_error, "{text}");
     assert_eq!(serde_json::from_str::<Value>(&text).unwrap()["eligible"], true);
 }
+
+/// Call a tool with this value of REMOTE_SESSIONS_MCP_APPROVE; returns (isError, text).
+fn call_with_approve_env(name: &str, arguments: Value, value: Option<&'static str>) -> (bool, String) {
+    let mut c = ctx();
+    c.env = Box::new(move |k| if k == mcp::MCP_APPROVE_ENV { value.map(str::to_string) } else { None });
+    let reply = mcp::handle(&c, &json!({"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": name, "arguments": arguments}})).unwrap();
+    (reply["result"]["isError"].as_bool().unwrap(), reply["result"]["content"][0]["text"].as_str().unwrap().to_string())
+}
+
+#[test]
+fn approve_and_deny_through_mcp_do_nothing_by_default() {
+    // Off (unset, or any value but 1): no token is read, no call is made, and the text gives the user's command.
+    for value in [None, Some("0"), Some("true"), Some("yes"), Some("")] {
+        for (tool, verb) in [("remote_approve", "approve"), ("remote_deny", "deny")] {
+            let (is_error, text) = call_with_approve_env(tool, json!({"session": "session_01ExampleAAAAAAAAAAAAAAA", "request": "r1"}), value);
+            assert!(is_error, "{tool} with {value:?} must not act: {text}");
+            assert!(text.contains(&format!("remote-sessions {verb} session_01ExampleAAAAAAAAAAAAAAA --request r1")), "{text}");
+            assert!(text.contains("REMOTE_SESSIONS_MCP_APPROVE=1") && text.contains("cannot answer a permission prompt by itself"), "{text}");
+            assert!(!text.contains("no token in tests"), "{tool} must not reach the API: {text}");
+        }
+    }
+    let (_, text) = call_with_approve_env("remote_approve", json!({"session": "session_01ExampleAAAAAAAAAAAAAAA"}), None);
+    assert!(text.contains("/remote-approve session_01ExampleAAAAAAAAAAAAAAA") && !text.contains("--request"), "{text}");
+    // A request id that is not a plain id is not echoed into the command.
+    let (_, text) = call_with_approve_env("remote_deny", json!({"session": "session_01ExampleAAAAAAAAAAAAAAA", "request": "r1; rm -rf ~"}), None);
+    assert!(!text.contains("rm -rf") && text.contains("remote-sessions deny session_01ExampleAAAAAAAAAAAAAAA [--message <why>]"), "{text}");
+    let (is_error, text) = call_with_approve_env("remote_approve", json!({"session": "https://evil.example/code/session_01AbCdEf"}), None);
+    assert!(is_error && !text.contains("evil.example/code"), "{text}");
+}
+
+#[test]
+fn approve_and_deny_through_mcp_act_only_with_the_opt_in() {
+    // With 1 the tool goes on to the API: here it stops at the missing token, which proves it passed the gate.
+    for tool in ["remote_approve", "remote_deny"] {
+        let (is_error, text) = call_with_approve_env(tool, json!({"session": "session_01ExampleAAAAAAAAAAAAAAA", "request": "r1"}), Some("1"));
+        assert!(is_error && text.contains("no token in tests"), "{tool}: {text}");
+    }
+}

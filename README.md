@@ -19,6 +19,7 @@
 - [Stop semantics](#stop-semantics)
 - [Recording](#recording)
 - [Limits](#limits)
+- [Security and trust](#security-and-trust)
 - [Security model](#security-model)
 - [License](#license)
 - [Contributing](#contributing)
@@ -72,7 +73,8 @@ Environment variables:
 | `REMOTE_SESSIONS_TOKEN` | `events` | API token; otherwise read from `~/.config/remote-sessions/token` (0600), then the Claude Code login (macOS keychain, then `~/.claude/.credentials.json`). Inside Claude Code `/remote-read` needs no token |
 | `CLAUDE_CONFIG_DIR` | `events` | Claude Code's config folder; its `.credentials.json` is read in place of `~/.claude/.credentials.json` |
 | `REMOTE_SESSIONS_CLAUDE` | `send`, `serve` | path of the `claude` binary |
-| `REMOTE_SESSIONS_API` | `events` | API base URL (default `https://api.anthropic.com`) |
+| `REMOTE_SESSIONS_API` | `events` | API base URL: `https://api.anthropic.com` only (plain http only to a loopback test server) |
+| `REMOTE_SESSIONS_MCP_APPROVE` | `mcp` | `1` lets the MCP tools `remote_approve` and `remote_deny` act; off by default (see Security and trust) |
 | `REMOTE_SESSIONS_RECORDING_HOSTS` | `recordings` | comma list of ssh hosts (default `localhost`: set your own) |
 
 All commands print JSON on stdout. A failure prints `{"ok":false,"error":"..."}` and exits 1.
@@ -111,10 +113,10 @@ Local Remote Control workers are processes whose args contain `--sdk-url https:/
 
 ```console
 $ remote-sessions list --host mac-a
-{"host":"mac-a","ok":true,"workers":[{"cse_id":"cse_01ExampleAAAAAAAAAAAAAAA","pid":12345,"session_id":"session_01ExampleAAAAAAAAAAAAAAA","url":"https://claude.ai/code/session_01ExampleAAAAAAAAAAAAAAA"}]}
+{"host":"mac-a","ok":true,"workers":[{"cse_id":"cse_01ExampleAAAAAAAAAAAAAAA","host":"mac-a","pid":12345,"session_id":"session_01ExampleAAAAAAAAAAAAAAA","url":"https://claude.ai/code/session_01ExampleAAAAAAAAAAAAAAA"}]}
 ```
 
-Without `--host` it lists this machine. An empty `workers` array means no session is served there.
+Without `--host` it lists this machine, plus the machines in `REMOTE_SESSIONS_HOSTS` and `~/.config/remote-sessions/hosts` (see [Several machines](#several-machines)). `--host mac-a,mac-b` lists exactly those machines. Each worker has a `host`; with more than one machine, `hosts` gives each machine's count or its error (`"error":"ssh timed out"`). An empty `workers` array means no session is served there.
 
 ### send
 
@@ -196,7 +198,7 @@ Not covered by live checks: `deny`, and `attach` itself (unit-tested against a f
 
 A `403` that says the device is untrusted prints a clear sentence. Claude Code's own client re-enrolls a device by signing a challenge; this tool does not implement signing, so enroll that machine from Claude Code first.
 
-MCP tools: `remote_pending`, `remote_approve`, `remote_deny`, `remote_say`.
+MCP tools: `remote_pending`, `remote_approve`, `remote_deny`, `remote_say`. Through MCP, `remote_approve` and `remote_deny` do nothing unless you set `REMOTE_SESSIONS_MCP_APPROVE=1` (see [Security and trust](#security-and-trust)).
 
 ### `attach --tui` (new in 0.3.0)
 
@@ -238,7 +240,7 @@ New in 0.3.0. `control` is one full-screen view over your Remote Control session
 
 ```console
 $ remote-sessions control                       # this machine
-$ remote-sessions control --host mac-a          # the Remote Control sessions of another machine (ssh)
+$ remote-sessions control --host mac-a,mac-b    # this machine and two more (ssh); see Several machines
 $ remote-sessions control --all                 # also the account's own cloud sessions (list --unofficial)
 $ remote-sessions control --routines            # show each routine and its newest runs (off by default; R toggles)
 $ remote-sessions control --no-color --ascii    # no color, ASCII glyphs (NO_COLOR works too)
@@ -276,6 +278,27 @@ $ remote-sessions control --demo                # placeholder sessions only
 | mouse wheel | scroll the panel under the pointer |
 
 Remote Control is read every 3 s and cloud every 10 s, one call each. Cloud sessions raise no permission prompts, so there is nothing to approve for them. The room never answers, sends or stops anything on its own. The frames above come from `cargo run -p sessions-tui --example mock_frames > frames.json`, which prints every cell of them (symbol, colors, bold) as JSON.
+
+### Several machines
+
+New in 0.3.1. The Remote Control panel lists this machine and every other machine you name. It reads them from three places, in this order, and lists each machine once:
+
+1. `control --host mac-a,mac-b` (a comma list; `--host` can also be given more than once),
+2. the environment variable `REMOTE_SESSIONS_HOSTS=mac-a,mac-b`,
+3. the file `~/.config/remote-sessions/hosts`, one ssh host per line:
+
+```text
+# ~/.config/remote-sessions/hosts
+mac-a
+mac-b
+vm-1        # the VM
+```
+
+This machine is always listed (labeled with its short host name), directly and not over ssh. Each other machine is listed with the same call as `list --host`: `ssh -n -o BatchMode=yes -o ConnectTimeout=5`, one thread per machine, stopped after 8 seconds. It uses your own ssh access (your ssh config and keys) and nothing else: no agent, no server, no login is copied to the other machine. A machine that does not answer gets its own row, for example `vm-1  ssh timed out`, and the others are listed as usual. With more than one machine, each row has a host column and the panel title counts the sessions of each machine (`mac-a 2 | mac-b 0 | vm-1 x`). `r` and the normal refresh list every machine again.
+
+Drop-in (`attach --tui`), approve, deny, read and say go through the session API by the claude.ai session id, so they work for a session on any machine exactly as for a local one. Only `stop` needs the machine itself: it sends a signal over ssh, so use `remote-sessions stop <session> --yes --host <machine>`.
+
+A host name must be an ssh config name or a host name: letters, digits, `.`, `_` and `-` (`user@` is allowed). A name that starts with `-` (an ssh option such as `-oProxyCommand=...`), or that has spaces or other characters, is refused before ssh runs. `/remote-room` uses the same sources; `REMOTE_SESSIONS_HOSTS` is passed into the tmux split.
 
 ## Attach from tmux or cmux
 
@@ -380,6 +403,30 @@ curl -sN -H "Authorization: Bearer $TOKEN" "http://127.0.0.1:3790/recordings/<id
 - The recording hosts default to `localhost`: set `REMOTE_SESSIONS_RECORDING_HOSTS` for your own.
 - Pane `stop` hides the recorder script's output and reports ok if it found the recording.
 - macOS only so far; the plugin launcher looks for `$REMOTE_SESSIONS_BIN` or `remote-sessions` on PATH.
+
+## Security and trust
+
+**Your login.** remote-sessions does not ask for your login. It does not store your login on a server, and it does not receive it: no server of ours is in the code. To call the session API, it reads the login that is already on your machine, in this order: `REMOTE_SESSIONS_TOKEN`, the file `~/.config/remote-sessions/token`, the Claude Code item in the macOS keychain, then `~/.claude/.credentials.json` (or `$CLAUDE_CONFIG_DIR/.credentials.json`). It sends the token only to `https://api.anthropic.com`. It refuses all other API addresses, except plain `http` to a loopback test server, and a test checks this.
+
+**The hosts in the code.**
+
+- `api.anthropic.com`: the session API. This is the only host that gets your login token.
+- `claude.ai`: session links only. The tool makes no call to it.
+- `github.com`: the plugin launcher downloads the release binary and its SHA-256 file one time. It refuses a binary whose checksum does not match. It sends no login.
+- `127.0.0.1`: the optional `recordings serve` (loopback only).
+
+The tool also starts other programs: `claude`, `cloud-sessions` (if you installed it), and `ssh` to the machines that you name (`--host`, `REMOTE_SESSIONS_HOSTS`, `~/.config/remote-sessions/hosts`), with your own ssh config and keys.
+
+**Never printed, never logged.** No output and no error text contains a token. Session text (events, transcripts, the input of a prompt) is untrusted data. The output says so, and the tool never acts on it.
+
+**The risks.**
+
+1. Prompt injection through MCP. A session can read hostile text, and that text can try to make the model approve a tool call in a different session. What we do about it: `remote_approve` and `remote_deny` are marked destructive; their descriptions say to use them only when the user asked; event text is marked untrusted; and from 0.3.1, the MCP tools `remote_approve` and `remote_deny` do nothing by default. They return the command, and you approve or deny yourself: `remote-sessions approve <session> --request <id>`, `/remote-approve`, or `a` / `d` in `remote-sessions control`. A model cannot change the environment of the MCP server that already runs, so it cannot answer a permission prompt by itself. To let the MCP tools act, set `REMOTE_SESSIONS_MCP_APPROVE=1` in the environment that starts Claude Code. We do not recommend it.
+2. You run our binary next to your login. The source is MIT and public. Each release archive has a SHA-256 checksum, and the binaries are built from this public tree.
+3. An undocumented API. The tool uses the same session API calls that Claude Code's own client makes. Anthropic does not document them and can change them. Anthropic's terms for the use of a claude.ai login by third-party tools apply to you.
+4. Local power. A program that can read your keychain item or `~/.claude/.credentials.json` can already do what this tool does. The tool adds no access.
+
+**Report a security problem.** Open a private security advisory on this repository: https://github.com/ramene/remote-sessions/security/advisories/new. Do not open a public issue for it.
 
 ## Security model
 

@@ -140,7 +140,12 @@ pub fn parse_args(args: &[String]) -> Result<Args> {
     while let Some(arg) = iter.next() {
         if let Some(name) = arg.strip_prefix("--") {
             if VALUE_FLAGS.contains(&name) {
-                out.values.insert(name.to_string(), iter.next().ok_or(format!("--{name} needs a value."))?.clone());
+                let value = iter.next().ok_or(format!("--{name} needs a value."))?.clone();
+                // `--host` can be given more than once: the values join into one comma list.
+                match out.values.get_mut(name) {
+                    Some(old) if name == "host" => { old.push(','); old.push_str(&value); }
+                    _ => { out.values.insert(name.to_string(), value); }
+                }
             } else if SWITCH_FLAGS.contains(&name) {
                 out.switches.push(name.to_string());
             } else { return Err(format!("Unknown option --{name}.")); }
@@ -202,10 +207,85 @@ fn serve_check(ctx: &Ctx, args: &Args) -> Result<Value> {
     Ok(json!({"ok": true, "eligible": true, "would_run": format!("claude {}", plan.join(" ")), "note": "A claude.ai subscription login is also required; `claude remote-control` reports it if missing. Run without --check to start the server."}))
 }
 
+/// The environment variable with more hosts for `control` and `list` (a comma list).
+pub const HOSTS_ENV: &str = "REMOTE_SESSIONS_HOSTS";
+
+/// The hosts file: `~/.config/remote-sessions/hosts`, one ssh host per line, `#` comments.
+pub fn hosts_file(env: &dyn Fn(&str) -> Option<String>) -> Option<PathBuf> {
+    non_empty(env("HOME")).map(|h| PathBuf::from(h).join(".config/remote-sessions/hosts"))
+}
+
+/// This machine's label: its short host name, else `local`.
+pub fn local_label() -> String {
+    let out = std::process::Command::new("uname").arg("-n").stdin(std::process::Stdio::null()).stderr(std::process::Stdio::null()).output();
+    let name = out.map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string()).unwrap_or_default();
+    let short = name.split('.').next().unwrap_or("").to_string();
+    if rc::host_ok(&short) { short } else { "local".into() }
+}
+
+/// Whether a configured host is this machine (it is listed directly, never over ssh to itself).
+pub fn is_local(host: &str, local: &str) -> bool {
+    host == "localhost" || host == "local" || host == local || host.split('.').next() == Some(local)
+}
+
+/// The other machines, merged in this order, each once: `--host` (a comma list; repeatable), then
+/// `REMOTE_SESSIONS_HOSTS`, then the hosts file. This machine is left out (it is always listed, directly). A bad
+/// name in any source is an error that names the source.
+pub fn configured_hosts(ctx: &Ctx, flag: Option<&str>) -> Result<Vec<String>> {
+    let mut lists = Vec::new();
+    if let Some(f) = flag { lists.push(rc::hosts_from_list(f).map_err(|e| format!("--host: {e}"))?); }
+    if let Some(e) = non_empty((ctx.env)(HOSTS_ENV)) { lists.push(rc::hosts_from_list(&e).map_err(|e| format!("{HOSTS_ENV}: {e}"))?); }
+    if let Some(path) = hosts_file(&*ctx.env) {
+        if let Ok(text) = std::fs::read_to_string(&path) { lists.push(rc::hosts_from_file(&text).map_err(|e| format!("{}: {e}", path.display()))?); }
+    }
+    let local = local_label();
+    Ok(rc::merge_hosts(lists).into_iter().filter(|h| !is_local(h, &local)).collect())
+}
+
+/// The Remote Control workers of each target (None = this machine), one thread per host. Each result stands alone:
+/// a host that fails or times out ([`rc::SSH_LIMIT`]) gives its own error and never hides the others.
+pub fn list_hosts(ctx: &Ctx, targets: &[Option<String>]) -> Vec<Result<Vec<rc::Worker>>> {
+    let ps = &ctx.ps;
+    std::thread::scope(|scope| {
+        let handles: Vec<_> = targets.iter().map(|t| scope.spawn(move || (**ps)(t.as_deref()).map(|text| rc::discover(&text)))).collect();
+        handles.into_iter().map(|h| h.join().unwrap_or_else(|_| Err("the listing failed".into()))).collect()
+    })
+}
+
+fn with_host(workers: Vec<rc::Worker>, host: &str) -> Vec<Value> {
+    workers.into_iter().map(|w| { let mut v = json!(w); v["host"] = json!(host); v }).collect()
+}
+
+/// `list`: Remote Control workers, each with its `host`. `--host a,b`: exactly those machines (one host: the
+/// output of before, `host` set). Without `--host`: this machine, plus the hosts of `REMOTE_SESSIONS_HOSTS` and
+/// the hosts file. With more than one machine, `hosts` gives each one's count or error.
 fn list(ctx: &Ctx, args: &Args) -> Result<Value> {
-    let host = args.values.get("host").map(String::as_str);
-    let workers = rc::discover(&(ctx.ps)(host)?);
-    Ok(json!({"ok": true, "host": host, "workers": workers}))
+    let named = args.values.get("host").map(|h| rc::hosts_from_list(h)).transpose()?;
+    if let Some([one]) = named.as_deref() {
+        let workers = with_host(rc::discover(&(ctx.ps)(Some(one.as_str()))?), one);
+        return Ok(json!({"ok": true, "host": one, "workers": workers}));
+    }
+    let local = local_label();
+    let targets: Vec<Option<String>> = match named {
+        Some(hosts) => hosts.into_iter().map(Some).collect(),
+        None => std::iter::once(None).chain(configured_hosts(ctx, None)?.into_iter().map(Some)).collect(),
+    };
+    if let [None] = targets.as_slice() {
+        let workers = with_host(rc::discover(&(ctx.ps)(None)?), &local);
+        return Ok(json!({"ok": true, "host": null, "workers": workers}));
+    }
+    let (mut workers, mut hosts) = (Vec::new(), Vec::new());
+    for (target, result) in targets.iter().zip(list_hosts(ctx, &targets)) {
+        let label = target.clone().unwrap_or_else(|| local.clone());
+        match result {
+            Ok(ws) => {
+                hosts.push(json!({"host": label, "ok": true, "workers": ws.len()}));
+                workers.extend(with_host(ws, &label));
+            }
+            Err(e) => hosts.push(json!({"host": label, "ok": false, "error": e})),
+        }
+    }
+    Ok(json!({"ok": true, "host": null, "hosts": hosts, "workers": workers}))
 }
 
 fn send_cmd(ctx: &Ctx, args: &Args, stdin: &mut dyn Read) -> Result<Value> {

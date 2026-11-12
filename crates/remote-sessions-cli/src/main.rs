@@ -40,10 +40,16 @@ fn main() {
         }
         "control" => {
             let parsed = match parse_args(rest) { Ok(p) => p, Err(e) => fail(&e) };
-            let host = parsed.values.get("host").cloned();
+            let flag = parsed.values.get("host").cloned();
             let demo = parsed.switch("demo");
-            let backend: std::sync::Arc<dyn sessions_tui::room::RoomBackend> = if demo { std::sync::Arc::new(remote_sessions_cli::control_room::DemoRoom) } else { std::sync::Arc::new(remote_sessions_cli::control_room::LiveRoom::new(ctx, host.clone()).with_all(parsed.switch("all")).with_routines(parsed.switch("routines"))) };
-            let label = host.clone().unwrap_or_default();
+            // This machine always; more machines from --host, REMOTE_SESSIONS_HOSTS and ~/.config/remote-sessions/hosts.
+            let (hosts, local) = if demo { (vec![], String::new()) } else {
+                match remote_sessions_cli::configured_hosts(&ctx, flag.as_deref()) { Ok(h) => (h, remote_sessions_cli::local_label()), Err(e) => fail(&e) }
+            };
+            // An extra panel (private build) reads one host: the --host, when exactly one was given.
+            let host = flag.filter(|f| remote_sessions_core::rc::hosts_from_list(f).is_ok_and(|v| v.len() == 1));
+            let label = if hosts.is_empty() { host.clone().unwrap_or_default() } else { format!("{local} +{}", hosts.len()) };
+            let backend: std::sync::Arc<dyn sessions_tui::room::RoomBackend> = if demo { std::sync::Arc::new(remote_sessions_cli::control_room::DemoRoom) } else { std::sync::Arc::new(remote_sessions_cli::control_room::LiveRoom::new(ctx, host.clone()).with_hosts(hosts, local).with_all(parsed.switch("all")).with_routines(parsed.switch("routines"))) };
             if parsed.switch("once") {
                 let size = match parsed.values.get("size") { Some(s) => s.split_once("x").and_then(|(w, h)| Some((w.parse::<u16>().ok()?, h.parse::<u16>().ok()?))).filter(|(w, h)| *w >= 30 && *h >= 9 && *w <= 400 && *h <= 200).unwrap_or_else(|| fail("--size must look like 100x28 (at least 30x9).")), None => (100, 28) };
                 let th = sessions_tui::theme::Theme::detect(parsed.switch("no-color"), parsed.switch("ascii"));

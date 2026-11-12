@@ -29,6 +29,11 @@ pub struct Client {
     beta: Option<String>,
 }
 
+/// The only address that gets the login token: `https://api.anthropic.com` (no other host, no port).
+fn anthropic(base: &str) -> bool {
+    base.strip_prefix(API).is_some_and(|rest| rest.is_empty() || rest.starts_with('/'))
+}
+
 fn loopback(base: &str) -> bool {
     ["http://127.0.0.1", "http://localhost", "http://[::1]"].iter().any(|p| base.strip_prefix(p).is_some_and(|rest| rest.is_empty() || rest.starts_with(':') || rest.starts_with('/')))
 }
@@ -56,10 +61,11 @@ pub fn error_message(status: u16, body: &str) -> String {
 }
 
 impl Client {
-    /// `base` is HTTPS (default `https://api.anthropic.com`); plain HTTP is accepted only for a loopback test server.
+    /// `base` is `https://api.anthropic.com` (the default); any other address is refused, except plain HTTP to a
+    /// loopback test server. So the token goes to Anthropic's API and nowhere else.
     pub fn new(base: Option<&str>, token: &str, beta: Option<&str>) -> Result<Self> {
         let base = base.unwrap_or(API).trim_end_matches('/').to_string();
-        if !(base.starts_with("https://") || loopback(&base)) { return Err("The API address must be https.".into()); }
+        if !(anthropic(&base) || loopback(&base)) { return Err("The API address must be https://api.anthropic.com (plain http only to a loopback test server).".into()); }
         let token = token.trim().to_string();
         if token.is_empty() || token.chars().any(char::is_control) { return Err("The token is empty or malformed.".into()); }
         let beta = beta.filter(|b| !b.is_empty()).map(str::to_string).or_else(|| token.starts_with("sk-ant-oat").then(|| "oauth-2025-04-20".to_string()));
@@ -154,5 +160,15 @@ mod tests {
         assert!(Client::new(Some("http://example.com"), "t", None).is_err());
         assert!(Client::new(Some("http://127.0.0.1:9"), "t", None).is_ok());
         assert!(Client::new(None, "", None).is_err());
+    }
+    #[test]
+    fn the_token_goes_only_to_api_anthropic_com() {
+        for ok in [None, Some("https://api.anthropic.com"), Some("https://api.anthropic.com/"), Some("http://127.0.0.1:9"), Some("http://localhost:8080"), Some("http://[::1]:9")] {
+            assert!(Client::new(ok, "t", None).is_ok(), "{ok:?}");
+        }
+        for bad in ["https://example.com", "https://api.anthropic.com.evil.example", "https://api.anthropic.com:8443", "https://api.anthropic.com@evil.example", "http://api.anthropic.com", "https://evil.example/https://api.anthropic.com", "http://127.0.0.1.evil.example"] {
+            let e = Client::new(Some(bad), "t", None).err().unwrap_or_else(|| panic!("{bad} must be refused"));
+            assert!(e.contains("must be https://api.anthropic.com"), "{e}");
+        }
     }
 }

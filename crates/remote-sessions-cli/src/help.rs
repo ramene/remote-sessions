@@ -4,7 +4,7 @@ use super::{SWITCH_FLAGS, VALUE_FLAGS};
 
 pub const USAGE: &str = "usage: remote-sessions <command>
   serve  [--name <n>] [--check]                  check eligibility, then run `claude remote-control --name <n>` (--check: only check)
-  list   [--host <ssh-host>]                     local Remote Control workers (found by --sdk-url .../sessions/cse_<id>); over ssh -n with --host
+  list   [--host <h>[,<h>...]]                  Remote Control workers (found by --sdk-url .../sessions/cse_<id>): this machine plus REMOTE_SESSIONS_HOSTS and ~/.config/remote-sessions/hosts; --host: only those machines (ssh -n)
   send   <session> --message <text|->            send a message (arrives as a PEER message; it cannot approve permissions)
   events <session> [--after <event id>]          read events (paged; needs a token, or use /remote-read in Claude Code)
   read   <session> [--after <cursor>]          the conversation as text lines, every page (paged)
@@ -20,7 +20,7 @@ pub const USAGE: &str = "usage: remote-sessions <command>
   stream    <session> [--from <seq>] [--for <s>]  live events, one JSON line each as they arrive (events/stream: message by message, not token by token); falls back to polling
   attach    <session> [--interval 1] [--poll] [--tui [--host <label>] [--no-color] [--ascii]]    terminal client (--tui: full-screen UI): live view (events/stream; polls if it cannot, and says so), sends typed lines, asks Allow? [y/n]; Ctrl-C leaves without stopping
   stop   <session> --yes [--host <ssh-host>]     one SIGINT to the worker: ENDS the session, the server archives it
-  control [--host <ssh-host>] [--all] [--routines] [--no-color] [--ascii] [--once [--size WxH] [--ansi]] [--demo]   the control room: Remote Control and cloud sessions in two panels; arrows or click to select, Enter or a second click to drop in, a/d approve or deny, s send to a cloud session, q/Esc/click x close. --once prints one frame (--ansi: with colors even when piped); --all also lists the account's own sessions (list --unofficial; also REMOTE_SESSIONS_CLOUD_ALL=1); --routines (or R in the room, or REMOTE_SESSIONS_ROUTINES=1) shows each routine as one plain line with its newest runs under it, off by default; --demo uses placeholder sessions
+  control [--host <h>[,<h>...]] [--all] [--routines] [--no-color] [--ascii] [--once [--size WxH] [--ansi]] [--demo]   the control room: Remote Control sessions of this machine and of each --host, REMOTE_SESSIONS_HOSTS and ~/.config/remote-sessions/hosts host (ssh -n), and cloud sessions, in two panels; arrows or click to select, Enter or a second click to drop in, a/d approve or deny, s send to a cloud session, q/Esc/click x close. --once prints one frame (--ansi: with colors even when piped); --all also lists the account's own sessions (list --unofficial; also REMOTE_SESSIONS_CLOUD_ALL=1); --routines (or R in the room, or REMOTE_SESSIONS_ROUTINES=1) shows each routine as one plain line with its newest runs under it, off by default; --demo uses placeholder sessions
   mcp                                            run as an MCP server over stdio
   help [<command>]                               this text, or the help of one command (also <command> --help or -h)";
 
@@ -65,11 +65,12 @@ pub fn option_text(command: &str, name: &str) -> Option<(&'static str, &'static 
     Some(match (command, name) {
         ("serve", "name") => ("--name <n>", "the session name: 1-64 letters, digits, spaces, '.', '_' or '-' (default remote-session)"),
         ("serve", "check") => ("--check", "only check eligibility; do not start claude"),
-        ("list" | "stop", "host") => ("--host <ssh-host>", "run on that machine over ssh -n (an ssh config name)"),
+        ("stop", "host") => ("--host <ssh-host>", "run on that machine over ssh -n (an ssh config name)"),
+        ("list", "host") => ("--host <h>[,<h>...]", "only these machines, over ssh -n (ssh config names; comma list, or --host again)"),
         ("cast", "host") => ("--host <h>", "read the transcript on that machine over ssh"),
         ("recordings", "host") => ("--host <h>", "the machine to record on (start)"),
         ("attach", "host") => ("--host <label>", "with --tui: the host name to show in the footer"),
-        ("control", "host") => ("--host <ssh-host>", "list the Remote Control sessions of that machine over ssh -n"),
+        ("control", "host") => ("--host <h>[,<h>...]", "more machines beside this one, over ssh -n (also REMOTE_SESSIONS_HOSTS and ~/.config/remote-sessions/hosts)"),
         ("send", "message") => ("--message <text|->", "the text to send; - reads it from stdin"),
         ("deny", "message") => ("--message <m>", "the reason to give with the deny"),
         ("events", "after") => ("--after <event id>", "start after this event"),

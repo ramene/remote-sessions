@@ -67,7 +67,7 @@ help_test! {
 #[test]
 fn control_help_names_its_options_and_keys() {
     let out = check("control");
-    for want in ["--host <ssh-host>", "--all", "--routines", "--no-color", "--ascii", "--once", "--size <WxH>", "--ansi", "--demo", "keys:"] {
+    for want in ["--host <h>[,<h>...]", "REMOTE_SESSIONS_HOSTS", "--all", "--routines", "--no-color", "--ascii", "--once", "--size <WxH>", "--ansi", "--demo", "keys:"] {
         assert!(out.contains(want), "control --help: missing {want:?}\n{out}");
     }
     for key in ["Up/Down", "Tab", "Enter", "a / d", "approve", "deny", "s ", "r ", "R ", "refresh", "routines", "q, Esc, Ctrl-C", "close"] {

@@ -20,7 +20,7 @@ const E: &str = "session_01ExampleEEEEEEEEEEEEEEE";
 const F: &str = "session_01ExampleFFFFFFFFFFFFFFF";
 
 fn waiting(id: &str, pid: u32, tool: &str, input: serde_json::Value) -> RemoteRow {
-    RemoteRow { id: id.into(), pid: Some(pid), state: RState::Waiting, prompts: vec![PromptInfo { request_id: format!("req_{pid}"), tool: tool.into(), input }] }
+    RemoteRow { host: String::new(), id: id.into(), pid: Some(pid), state: RState::Waiting, prompts: vec![PromptInfo { request_id: format!("req_{pid}"), tool: tool.into(), input }] }
 }
 fn cloud(id: &str, title: &str, repo: &str, last: &str, ago_ms: u64, finished: bool) -> CloudRow {
     CloudRow { id: id.into(), title: title.into(), repo: repo.into(), last: last.into(), last_at_ms: Some(NOW - ago_ms), finished, error: None, fetched_ms: Some(NOW), from_list: false, kind: RowKind::Session }
@@ -28,7 +28,7 @@ fn cloud(id: &str, title: &str, repo: &str, last: &str, ago_ms: u64, finished: b
 fn remote_rows() -> Vec<RemoteRow> {
     vec![
         waiting(A, 4242, "Edit", json!({"file_path": "src/parser.rs"})),
-        RemoteRow { id: B.into(), pid: Some(4243), state: RState::Idle, prompts: vec![] },
+        RemoteRow { host: String::new(), id: B.into(), pid: Some(4243), state: RState::Idle, prompts: vec![] },
         waiting(C, 4244, "Bash", json!({"command": "cargo test --workspace"})),
     ]
 }
@@ -58,7 +58,7 @@ fn room(w: u16, h: u16) -> RoomState {
         s,
         vec![
             RoomMsg::Tick(NOW),
-            RoomMsg::Remote(RemoteSnapshot { rows: remote_rows(), status: RemoteStatus::Ready }),
+            RoomMsg::Remote(RemoteSnapshot { hosts: vec![], rows: remote_rows(), status: RemoteStatus::Ready }),
             RoomMsg::Cloud(CloudSnapshot { rows: cloud_rows(), status: CloudStatus::Ready { tracked: 3 } }),
         ],
     )
@@ -118,9 +118,9 @@ fn too_small_says_so() {
 fn empty_and_absent_states() {
     let mut s = RoomState::new("");
     s.size = (80, 16);
-    let s = feed(s, vec![RoomMsg::Tick(NOW), RoomMsg::Remote(RemoteSnapshot { rows: vec![], status: RemoteStatus::Ready }), RoomMsg::Cloud(CloudSnapshot { rows: vec![], status: CloudStatus::Absent })]).0;
+    let s = feed(s, vec![RoomMsg::Tick(NOW), RoomMsg::Remote(RemoteSnapshot { hosts: vec![], rows: vec![], status: RemoteStatus::Ready }), RoomMsg::Cloud(CloudSnapshot { rows: vec![], status: CloudStatus::Absent })]).0;
     snap("room_empty_cloud_absent_80x16", text(&s, &Theme::color()).trim_end());
-    let s = feed(s, vec![RoomMsg::Remote(RemoteSnapshot { rows: vec![], status: RemoteStatus::NoLogin }), RoomMsg::Cloud(CloudSnapshot { rows: vec![], status: CloudStatus::Failed("not signed in".into()) })]).0;
+    let s = feed(s, vec![RoomMsg::Remote(RemoteSnapshot { hosts: vec![], rows: vec![], status: RemoteStatus::NoLogin }), RoomMsg::Cloud(CloudSnapshot { rows: vec![], status: CloudStatus::Failed("not signed in".into()) })]).0;
     let t = text(&s, &Theme::color());
     assert!(t.contains("no claude.ai login") && t.contains("could not be read: not signed in"), "{t}");
 }
@@ -243,8 +243,8 @@ fn the_close_button_is_clickable_in_every_mode() {
 fn the_wheel_scrolls_the_panel_under_the_pointer_and_the_map_follows() {
     let mut s = RoomState::new("");
     s.size = (80, 14);
-    let many: Vec<RemoteRow> = (0..20).map(|i| RemoteRow { id: format!("session_01Example{i:02}XXXXXXXXXXXXXX"), pid: Some(100 + i), state: RState::Idle, prompts: vec![] }).collect();
-    let (s, _) = feed(s, vec![RoomMsg::Tick(NOW), RoomMsg::Remote(RemoteSnapshot { rows: many, status: RemoteStatus::Ready })]);
+    let many: Vec<RemoteRow> = (0..20).map(|i| RemoteRow { host: String::new(), id: format!("session_01Example{i:02}XXXXXXXXXXXXXX"), pid: Some(100 + i), state: RState::Idle, prompts: vec![] }).collect();
+    let (s, _) = feed(s, vec![RoomMsg::Tick(NOW), RoomMsg::Remote(RemoteSnapshot { hosts: vec![], rows: many, status: RemoteStatus::Ready })]);
     let l = layout(Rect::new(0, 0, 80, 14), &s);
     let cap = l.caps[0];
     assert!(cap >= 3 && cap < 20, "cap {cap}");
@@ -364,7 +364,7 @@ fn a_prompt_that_disappears_withdraws_the_confirmation() {
     let mut rows = remote_rows();
     rows[0].state = RState::Idle;
     rows[0].prompts.clear();
-    let (s, _) = feed(s, vec![RoomMsg::Remote(RemoteSnapshot { rows, status: RemoteStatus::Ready })]);
+    let (s, _) = feed(s, vec![RoomMsg::Remote(RemoteSnapshot { hosts: vec![], rows, status: RemoteStatus::Ready })]);
     assert_eq!(s.mode, Mode::Browse);
     assert!(s.toast.unwrap().text.contains("no longer pending"));
 }
@@ -396,9 +396,9 @@ fn refresh_keeps_the_selection_by_id_and_moves_off_a_vanished_row() {
     assert_eq!(s.sel, Some(Sel::Remote(C.into())));
     let mut rows = remote_rows();
     rows.reverse();
-    let (s, _) = feed(s, vec![RoomMsg::Remote(RemoteSnapshot { rows, status: RemoteStatus::Ready })]);
+    let (s, _) = feed(s, vec![RoomMsg::Remote(RemoteSnapshot { hosts: vec![], rows, status: RemoteStatus::Ready })]);
     assert_eq!(s.sel, Some(Sel::Remote(C.into())));
-    let (s, _) = feed(s, vec![RoomMsg::Remote(RemoteSnapshot { rows: vec![], status: RemoteStatus::Ready })]);
+    let (s, _) = feed(s, vec![RoomMsg::Remote(RemoteSnapshot { hosts: vec![], rows: vec![], status: RemoteStatus::Ready })]);
     assert_eq!(s.sel, Some(Sel::Cloud(D.into())), "falls to the first row that is left");
 }
 
@@ -444,8 +444,8 @@ fn ages_and_states_come_from_the_newest_event() {
 fn resize_keeps_the_selected_row_visible() {
     let mut s = RoomState::new("");
     s.size = (80, 30);
-    let many: Vec<RemoteRow> = (0..12).map(|i| RemoteRow { id: format!("session_01Example{i:02}XXXXXXXXXXXXXX"), pid: Some(100 + i), state: RState::Idle, prompts: vec![] }).collect();
-    let (s, _) = feed(s, vec![RoomMsg::Tick(NOW), RoomMsg::Remote(RemoteSnapshot { rows: many, status: RemoteStatus::Ready })]);
+    let many: Vec<RemoteRow> = (0..12).map(|i| RemoteRow { host: String::new(), id: format!("session_01Example{i:02}XXXXXXXXXXXXXX"), pid: Some(100 + i), state: RState::Idle, prompts: vec![] }).collect();
+    let (s, _) = feed(s, vec![RoomMsg::Tick(NOW), RoomMsg::Remote(RemoteSnapshot { hosts: vec![], rows: many, status: RemoteStatus::Ready })]);
     let (s, _) = press(s, vec![key(KeyCode::End)]);
     let (s, _) = feed(s, vec![RoomMsg::Resize(80, 12)]);
     assert!(layout(Rect::new(0, 0, 80, 12), &s).rows.iter().any(|(_, x)| Some(x) == s.sel.as_ref()));
@@ -511,7 +511,7 @@ fn with_specs(s: RoomState) -> RoomState {
     p.size = s.size;
     p.air = s.air;
     p.band = s.band;
-    feed(p, vec![RoomMsg::Tick(NOW), RoomMsg::Remote(RemoteSnapshot { rows: remote_rows(), status: RemoteStatus::Ready }), RoomMsg::Cloud(CloudSnapshot { rows: cloud_rows(), status: CloudStatus::Ready { tracked: 3 } })]).0
+    feed(p, vec![RoomMsg::Tick(NOW), RoomMsg::Remote(RemoteSnapshot { hosts: vec![], rows: remote_rows(), status: RemoteStatus::Ready }), RoomMsg::Cloud(CloudSnapshot { rows: cloud_rows(), status: CloudStatus::Ready { tracked: 3 } })]).0
 }
 fn with_builds(s: RoomState) -> RoomState {
     feed(s, vec![RoomMsg::Panel(0, PanelSnapshot { rows: build_rows(), status: PanelStatus::Ready })]).0
@@ -685,7 +685,7 @@ fn cloud_only(rows: Vec<CloudRow>) -> RoomState {
     let mut s = RoomState::new("");
     s.size = (100, 30);
     let n = rows.iter().filter(|r| !r.is_group()).count();
-    feed(s, vec![RoomMsg::Tick(NOW), RoomMsg::Remote(RemoteSnapshot { rows: vec![], status: RemoteStatus::Ready }), RoomMsg::Cloud(CloudSnapshot { rows, status: CloudStatus::Ready { tracked: n } })]).0
+    feed(s, vec![RoomMsg::Tick(NOW), RoomMsg::Remote(RemoteSnapshot { hosts: vec![], rows: vec![], status: RemoteStatus::Ready }), RoomMsg::Cloud(CloudSnapshot { rows, status: CloudStatus::Ready { tracked: n } })]).0
 }
 
 #[test]
@@ -695,7 +695,7 @@ fn a_listing_of_41_rows_has_a_state_on_the_first_frame_and_reads_only_the_select
         .collect();
     let mut s0 = RoomState::new("");
     s0.size = (110, 30);
-    let (s, fx) = feed(s0, vec![RoomMsg::Tick(NOW), RoomMsg::Remote(RemoteSnapshot { rows: vec![], status: RemoteStatus::Ready }), RoomMsg::Cloud(CloudSnapshot { rows, status: CloudStatus::Ready { tracked: 41 } })]);
+    let (s, fx) = feed(s0, vec![RoomMsg::Tick(NOW), RoomMsg::Remote(RemoteSnapshot { hosts: vec![], rows: vec![], status: RemoteStatus::Ready }), RoomMsg::Cloud(CloudSnapshot { rows, status: CloudStatus::Ready { tracked: 41 } })]);
     assert!(s.cloud.iter().all(|c| c.state(NOW) != CState::Unknown), "no row waits for an activity read");
     assert_eq!(fx.iter().filter(|e| matches!(e, RoomEffect::FetchActivity(_))).count(), 1, "one read, for the selected row only");
     let frame = text(&s, &Theme::detect(true, false));
@@ -843,7 +843,7 @@ fn look_room(w: u16, h: u16, air: bool, band: bool) -> RoomState {
         s,
         vec![
             RoomMsg::Tick(NOW),
-            RoomMsg::Remote(RemoteSnapshot { rows: remote_rows(), status: RemoteStatus::Ready }),
+            RoomMsg::Remote(RemoteSnapshot { hosts: vec![], rows: remote_rows(), status: RemoteStatus::Ready }),
             RoomMsg::Cloud(CloudSnapshot { rows: cloud_rows(), status: CloudStatus::Ready { tracked: 3 } }),
         ],
     )
@@ -1010,4 +1010,32 @@ fn no_new_glyphs_anywhere_in_the_screens_sources() {
     assert!(rs.is_subset(&classic), "renderSVG frame glyphs not in the classic frame: {:?}", rs.difference(&classic).collect::<Vec<_>>());
     let band: std::collections::BTreeSet<char> = text(&look_room(120, 40, true, true), &Theme::rendersvg()).chars().filter(|c| !c.is_ascii()).collect();
     assert!(band.is_subset(&classic), "band frame glyphs not in the classic frame: {:?}", band.difference(&classic).collect::<Vec<_>>());
+}
+
+#[test]
+fn several_hosts_get_a_host_column_counts_and_a_row_for_a_host_that_failed() {
+    let host = |h: &str, r: RemoteRow| RemoteRow { host: h.into(), ..r };
+    let rows = vec![
+        host("mac-a", waiting(A, 4242, "Edit", json!({"file_path": "src/parser.rs"}))),
+        host("mac-a", RemoteRow { host: String::new(), id: C.into(), pid: Some(4244), state: RState::Idle, prompts: vec![] }),
+        host("mac-b", RemoteRow { host: String::new(), id: B.into(), pid: Some(4243), state: RState::Idle, prompts: vec![] }),
+        RemoteRow { host: "vm-1".into(), id: "host:vm-1".into(), pid: None, state: RState::HostDown("ssh timed out".into()), prompts: vec![] },
+    ];
+    let mut s = RoomState::new("mac-a +2");
+    s.size = (140, 24);
+    let hosts = vec!["mac-a".to_string(), "mac-c".to_string(), "mac-b".to_string(), "vm-1".to_string()];
+    let (s, _) = feed(s, vec![RoomMsg::Tick(NOW), RoomMsg::Remote(RemoteSnapshot { hosts, rows, status: RemoteStatus::Ready }), RoomMsg::Cloud(CloudSnapshot { rows: cloud_rows(), status: CloudStatus::Ready { tracked: 3 } })]);
+    let t = text(&s, &Theme::detect(true, true));
+    assert!(t.contains("mac-a 2 | mac-c 0 | mac-b 1 | vm-1 x"), "per-host counts in the title, a host with no session too:\n{t}");
+    let row = |id: &str| t.lines().find(|l| l.contains(id)).unwrap_or_else(|| panic!("no row for {id}:\n{t}")).to_string();
+    assert!(row(A).contains("mac-a") && row(B).contains("mac-b"), "host column:\n{t}");
+    let down = t.lines().find(|l| l.contains("ssh timed out")).unwrap_or_else(|| panic!("no error row:\n{t}"));
+    assert!(down.contains("vm-1") && !down.contains("host:vm-1"), "{down}");
+    // The error row is drawn but never selected: the arrows walk the sessions only.
+    assert!(s.order().iter().all(|sel| *sel != Sel::Remote("host:vm-1".into())));
+    let (s, _) = press(s, vec![key(KeyCode::Down), key(KeyCode::Down), key(KeyCode::Down)]);
+    assert_eq!(s.sel, Some(Sel::Cloud(D.into())));
+    // One machine (host empty): no host column and no counts, as before.
+    let one = text(&room(100, 24), &Theme::detect(true, true));
+    assert!(!one.contains("mac-a") && !one.contains(" | "), "{one}");
 }

@@ -60,7 +60,8 @@ Environment variables:
 | `REMOTE_SESSIONS_BIN` | plugin launcher | path of the binary to run |
 | `REMOTE_SESSIONS_TOKEN` | `events` | API token; otherwise read from `~/.config/remote-sessions/token` (0600). Inside Claude Code `/remote-read` needs no token |
 | `REMOTE_SESSIONS_CLAUDE` | `send`, `serve` | path of the `claude` binary |
-| `REMOTE_SESSIONS_API` | `events` | API base URL (default `https://api.anthropic.com`) |
+| `REMOTE_SESSIONS_API` | `events` | API base URL: `https://api.anthropic.com` only (plain http only to a loopback test server) |
+| `REMOTE_SESSIONS_MCP_APPROVE` | `mcp` | `1` lets the MCP tools `remote_approve` and `remote_deny` act; off by default (see Security and trust in the repository README) |
 | `REMOTE_SESSIONS_RECORDING_HOSTS` | `recordings` | comma list of ssh hosts (default `localhost`: set your own) |
 
 All commands print JSON on stdout. A failure prints `{"ok":false,"error":"..."}` and exits 1.

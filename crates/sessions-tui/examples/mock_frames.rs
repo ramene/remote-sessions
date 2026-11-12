@@ -47,7 +47,7 @@ fn key(c: KeyCode) -> KeyEvent {
 }
 
 fn waiting(id: &str, pid: u32, tool: &str, input: Value) -> RemoteRow {
-    RemoteRow { id: id.into(), pid: Some(pid), state: RState::Waiting, prompts: vec![PromptInfo { request_id: format!("req_{pid}"), tool: tool.into(), input }] }
+    RemoteRow { host: String::new(), id: id.into(), pid: Some(pid), state: RState::Waiting, prompts: vec![PromptInfo { request_id: format!("req_{pid}"), tool: tool.into(), input }] }
 }
 fn cloud(id: &str, title: &str, repo: &str, last: &str, ago_ms: u64, finished: bool) -> CloudRow {
     CloudRow { id: id.into(), title: title.into(), repo: repo.into(), last: last.into(), last_at_ms: Some(NOW - ago_ms), finished, error: None, fetched_ms: Some(NOW), from_list: false, kind: RowKind::Session }
@@ -60,9 +60,10 @@ fn room(w: u16, h: u16) -> RoomState {
     let msgs = vec![
         RoomMsg::Tick(NOW),
         RoomMsg::Remote(RemoteSnapshot {
+            hosts: vec![],
             rows: vec![
                 waiting(A, 4242, "Bash", json!({"command": "npm test"})),
-                RemoteRow { id: B.into(), pid: Some(4243), state: RState::Idle, prompts: vec![] },
+                RemoteRow { host: String::new(), id: B.into(), pid: Some(4243), state: RState::Idle, prompts: vec![] },
                 waiting(C, 4244, "Edit", json!({"file_path": "src/auth.ts"})),
             ],
             status: RemoteStatus::Ready,

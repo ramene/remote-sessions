@@ -130,7 +130,7 @@ New in 0.3.0. The control room shows your Remote Control sessions and your cloud
 
 ```bash
 remote-sessions control                   # this machine
-remote-sessions control --host mac-a      # the Remote Control sessions of another machine
+remote-sessions control --host mac-a,mac-b   # this machine and two more, over your own ssh
 ```
 
 In Claude Code, type `/remote-room` (new in 0.3.0; see [Upgrade from 0.2.x](#upgrade-from-02x) if Claude Code says `Unknown command`). It opens the control room in a split beside Claude Code.
@@ -157,6 +157,19 @@ The footer shows the keys:
 *Frame b: `a` on a session that waits on a permission prompt; the box asks for `y`. Drawn by the real code with placeholder data.*
 
 The room never answers, sends or stops anything by itself. Closing the room does not stop a session.
+
+### Several machines (new in 0.3.1)
+
+To see the Remote Control sessions of all your machines in one room, put them in `~/.config/remote-sessions/hosts`, one ssh host per line:
+
+```text
+# ~/.config/remote-sessions/hosts
+mac-a
+mac-b
+vm-1        # the VM
+```
+
+Then `remote-sessions control` (or `/remote-room`) lists this machine and each of them. `REMOTE_SESSIONS_HOSTS=mac-a,mac-b` and `control --host mac-a,mac-b` do the same; the room merges all three. It uses your own ssh access (`ssh -n`, BatchMode, keys from your ssh config) and nothing else. A machine that does not answer shows one row such as `vm-1  ssh timed out`; the others are listed as usual. See the README, [Several machines](../README.md#several-machines).
 
 ## 5. tmux and cmux
 

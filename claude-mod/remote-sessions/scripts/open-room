@@ -5,6 +5,12 @@
 # One line of JSON on stdout.
 here=$(cd "$(dirname "$0")" && pwd)
 room="\"$here/remote-sessions\" control $*"
+# The room reads REMOTE_SESSIONS_HOSTS and ~/.config/remote-sessions/hosts itself. A tmux split does not get this
+# shell's environment, so pass REMOTE_SESSIONS_HOSTS on, only when it holds host-name characters and commas.
+case "${REMOTE_SESSIONS_HOSTS:-}" in
+  ''|*[!A-Za-z0-9._,@-]*) ;;
+  *) room="REMOTE_SESSIONS_HOSTS=$REMOTE_SESSIONS_HOSTS $room" ;;
+esac
 if { [ -n "${CMUX_SURFACE_ID:-}" ] || [ -n "${CMUX_WORKSPACE_ID:-}" ]; } && command -v cmux >/dev/null 2>&1; then
   if cmux new-split right --command "$room" >/dev/null 2>&1; then
     echo '{"split":true,"mux":"cmux","room":"control","close":"press q, Esc or the x in the room"}'

@@ -34,6 +34,10 @@ type Spawner = Box<dyn Fn(&str, &[String]) -> Result<String> + Send + Sync>;
 pub struct LiveRoom {
     ctx: Ctx,
     host: Option<String>,
+    /// The other machines listed beside this one (each over ssh -n); empty: this machine (or `host`) only.
+    hosts: Vec<String>,
+    /// This machine's label in the host column.
+    local: String,
     login: Mutex<(Option<Client>, Option<Instant>)>,
     /// Runs `cloud-sessions <args>` with optional stdin and a time limit; `Err(ABSENT)` when it is not installed.
     cloud: Runner,
@@ -53,7 +57,13 @@ impl LiveRoom {
         let cloud_max = (ctx.env)("REMOTE_SESSIONS_CLOUD_MAX").and_then(|v| v.parse().ok()).filter(|n| (1..=50).contains(n)).unwrap_or(DEFAULT_CLOUD_MAX);
         let cloud_all = (ctx.env)("REMOTE_SESSIONS_CLOUD_ALL").is_some_and(|v| v.trim() == "1");
         let routines = AtomicBool::new((ctx.env)("REMOTE_SESSIONS_ROUTINES").is_some_and(|v| v.trim() == "1"));
-        LiveRoom { ctx, host, login: Mutex::new((None, None)), cloud: Box::new(run_cloud), inherit: Box::new(run_inherit), cloud_max, cloud_all, routines, extra: linked_panels() }
+        LiveRoom { ctx, host, hosts: vec![], local: String::new(), login: Mutex::new((None, None)), cloud: Box::new(run_cloud), inherit: Box::new(run_inherit), cloud_max, cloud_all, routines, extra: linked_panels() }
+    }
+    /// List these machines too (over ssh -n), beside this one, which is labeled `local`.
+    pub fn with_hosts(mut self, hosts: Vec<String>, local: String) -> LiveRoom {
+        self.hosts = hosts;
+        self.local = if local.is_empty() { "local".into() } else { local };
+        self
     }
     /// Replace the extra panels (tests, and programs that embed the room).
     pub fn with_panels(mut self, panels: Vec<Box<dyn RoomPanel>>) -> LiveRoom {
@@ -525,32 +535,53 @@ pub fn run_inherit(program: &str, args: &[String]) -> Result<String> {
 
 impl RoomBackend for LiveRoom {
     fn remote(&self) -> RemoteSnapshot {
-        let ps = match (self.ctx.ps)(self.host.as_deref()) {
-            Ok(p) => p,
-            Err(e) => return RemoteSnapshot { rows: vec![], status: RemoteStatus::Failed(e) },
-        };
-        let mut workers = rc::discover(&ps);
-        workers.sort_by(|a, b| a.session_id.cmp(&b.session_id));
-        workers.dedup_by(|a, b| a.session_id == b.session_id);
+        // This machine, then each other host (--host, REMOTE_SESSIONS_HOSTS, the hosts file), one thread per host.
+        // A host that fails or times out becomes its own error row; it never hides the others.
+        let several = !self.hosts.is_empty();
+        let mut targets: Vec<Option<String>> = vec![if several { None } else { self.host.clone() }];
+        targets.extend(self.hosts.iter().cloned().map(Some));
+        let mut workers: Vec<(String, rc::Worker)> = Vec::new();
+        let mut down: Vec<RemoteRow> = Vec::new();
+        for (target, result) in targets.iter().zip(crate::list_hosts(&self.ctx, &targets)) {
+            let label = if several { target.clone().unwrap_or_else(|| self.local.clone()) } else { String::new() };
+            match result {
+                Ok(mut ws) => {
+                    ws.sort_by(|a, b| a.session_id.cmp(&b.session_id));
+                    workers.extend(ws.into_iter().map(|w| (label.clone(), w)));
+                }
+                Err(e) if !several => return RemoteSnapshot { hosts: vec![], rows: vec![], status: RemoteStatus::Failed(e) },
+                Err(e) => down.push(RemoteRow { host: label.clone(), id: format!("host:{label}"), pid: None, state: RState::HostDown(e), prompts: vec![] }),
+            }
+        }
+        let mut seen = std::collections::HashSet::new();
+        workers.retain(|(_, w)| seen.insert(w.session_id.clone()));
         workers.truncate(MAX_REMOTE);
-        let Some(client) = self.client() else {
-            let rows = workers.iter().map(|w| RemoteRow { id: w.session_id.clone(), pid: Some(w.pid), state: RState::Unknown, prompts: vec![] }).collect();
-            return RemoteSnapshot { rows, status: RemoteStatus::NoLogin };
+        // Rows in host order (--host, REMOTE_SESSIONS_HOSTS, the hosts file), a failed host's row at its place.
+        let order: Vec<String> = targets.iter().map(|t| t.clone().unwrap_or_else(|| self.local.clone())).collect();
+        let by_host = |mut rows: Vec<RemoteRow>| {
+            if several {
+                rows.sort_by_key(|r| order.iter().position(|h| *h == r.host).unwrap_or(usize::MAX));
+            }
+            rows
         };
-        let rows: Vec<RemoteRow> = std::thread::scope(|scope| {
+        let Some(client) = self.client() else {
+            let mut rows: Vec<RemoteRow> = workers.iter().map(|(h, w)| RemoteRow { host: h.clone(), id: w.session_id.clone(), pid: Some(w.pid), state: RState::Unknown, prompts: vec![] }).collect();
+            rows.extend(down);
+            return RemoteSnapshot { hosts: if several { order.clone() } else { vec![] }, rows: by_host(rows), status: RemoteStatus::NoLogin };
+        };
+        // Prompts are read by claude.ai session id through the session API: the same for a session on any host.
+        let mut rows: Vec<RemoteRow> = std::thread::scope(|scope| {
             let handles: Vec<_> = workers
                 .iter()
-                .map(|w| {
+                .map(|(h, w)| {
                     let client = &client;
-                    scope.spawn(move || match client.pending_prompts(&w.session_id) {
-                        Ok(ps) if ps.is_empty() => RemoteRow { id: w.session_id.clone(), pid: Some(w.pid), state: RState::Idle, prompts: vec![] },
-                        Ok(ps) => RemoteRow {
-                            id: w.session_id.clone(),
-                            pid: Some(w.pid),
-                            state: RState::Waiting,
-                            prompts: ps.into_iter().map(|p| PromptInfo { request_id: p.request_id, tool: p.tool_name, input: p.input }).collect(),
-                        },
-                        Err(e) => RemoteRow { id: w.session_id.clone(), pid: Some(w.pid), state: RState::Unreadable(e), prompts: vec![] },
+                    scope.spawn(move || {
+                        let (state, prompts) = match client.pending_prompts(&w.session_id) {
+                            Ok(ps) if ps.is_empty() => (RState::Idle, vec![]),
+                            Ok(ps) => (RState::Waiting, ps.into_iter().map(|p| PromptInfo { request_id: p.request_id, tool: p.tool_name, input: p.input }).collect()),
+                            Err(e) => (RState::Unreadable(e), vec![]),
+                        };
+                        RemoteRow { host: h.clone(), id: w.session_id.clone(), pid: Some(w.pid), state, prompts }
                     })
                 })
                 .collect();
@@ -560,7 +591,8 @@ impl RoomBackend for LiveRoom {
         if !rows.is_empty() && rows.iter().all(|r| matches!(r.state, RState::Unreadable(_))) {
             self.forget_login();
         }
-        RemoteSnapshot { rows, status: RemoteStatus::Ready }
+        rows.extend(down);
+        RemoteSnapshot { hosts: if several { order.clone() } else { vec![] }, rows: by_host(rows), status: RemoteStatus::Ready }
     }
 
     fn cloud(&self) -> CloudSnapshot {
@@ -885,11 +917,12 @@ fn demo_cloud(id: &str, title: &str, repo: &str, last: &str, ago_ms: u64, finish
 
 impl RoomBackend for DemoRoom {
     fn remote(&self) -> RemoteSnapshot {
-        let waiting = |id: &str, pid: u32, tool: &str, input: Value| RemoteRow { id: id.into(), pid: Some(pid), state: RState::Waiting, prompts: vec![PromptInfo { request_id: format!("req_{pid}"), tool: tool.into(), input }] };
+        let waiting = |id: &str, pid: u32, tool: &str, input: Value| RemoteRow { host: String::new(), id: id.into(), pid: Some(pid), state: RState::Waiting, prompts: vec![PromptInfo { request_id: format!("req_{pid}"), tool: tool.into(), input }] };
         RemoteSnapshot {
+            hosts: vec![],
             rows: vec![
                 waiting(DEMO_A, 4242, "Edit", serde_json::json!({"file_path": "src/parser.rs"})),
-                RemoteRow { id: DEMO_B.into(), pid: Some(4243), state: RState::Idle, prompts: vec![] },
+                RemoteRow { host: String::new(), id: DEMO_B.into(), pid: Some(4243), state: RState::Idle, prompts: vec![] },
                 waiting(DEMO_C, 4244, "Bash", serde_json::json!({"command": "cargo test --workspace"})),
             ],
             status: RemoteStatus::Ready,
