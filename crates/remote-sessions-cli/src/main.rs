@@ -49,7 +49,7 @@ fn main() {
             // An extra panel (private build) reads one host: the --host, when exactly one was given.
             let host = flag.filter(|f| remote_sessions_core::rc::hosts_from_list(f).is_ok_and(|v| v.len() == 1));
             let label = if hosts.is_empty() { host.clone().unwrap_or_default() } else { format!("{local} +{}", hosts.len()) };
-            let backend: std::sync::Arc<dyn sessions_tui::room::RoomBackend> = if demo { std::sync::Arc::new(remote_sessions_cli::control_room::DemoRoom) } else { std::sync::Arc::new(remote_sessions_cli::control_room::LiveRoom::new(ctx, host.clone()).with_hosts(hosts, local).with_all(parsed.switch("all")).with_routines(parsed.switch("routines"))) };
+            let backend: std::sync::Arc<dyn sessions_tui::room::RoomBackend> = if demo { std::sync::Arc::new(remote_sessions_cli::control_room::DemoRoom) } else { std::sync::Arc::new(remote_sessions_cli::control_room::LiveRoom::new(ctx, host.clone()).with_hosts(hosts, local).with_all(parsed.switch("all")).with_tracked(parsed.switch("tracked")).with_routines(parsed.switch("routines")).with_no_routines(parsed.switch("no-routines"))) };
             if parsed.switch("once") {
                 let size = match parsed.values.get("size") { Some(s) => s.split_once("x").and_then(|(w, h)| Some((w.parse::<u16>().ok()?, h.parse::<u16>().ok()?))).filter(|(w, h)| *w >= 30 && *h >= 9 && *w <= 400 && *h <= 200).unwrap_or_else(|| fail("--size must look like 100x28 (at least 30x9).")), None => (100, 28) };
                 let th = sessions_tui::theme::Theme::detect(parsed.switch("no-color"), parsed.switch("ascii"));

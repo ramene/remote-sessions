@@ -129,9 +129,12 @@ remote-sessions attach session_01ExampleAAAAAAAAAAAAAAA --tui
 New in 0.3.0. The control room shows your Remote Control sessions and your cloud sessions in one full-screen view.
 
 ```bash
-remote-sessions control                   # this machine
+remote-sessions control                   # this machine, every session of your account, and the Routines
 remote-sessions control --host mac-a,mac-b   # this machine and two more, over your own ssh
+remote-sessions control --tracked         # Cloud: only the sessions tracked on this machine
 ```
+
+From 0.3.2 the room needs no flag to show everything: every cloud session of your claude.ai account (with its name), the Routines, and your account's Remote Control sessions on other machines. You do not have to track a session to see it.
 
 In Claude Code, type `/remote-room` (new in 0.3.0; see [Upgrade from 0.2.x](#upgrade-from-02x) if Claude Code says `Unknown command`). It opens the control room in a split beside Claude Code.
 
@@ -144,7 +147,7 @@ The footer shows the keys:
 | Key | Action |
 |---|---|
 | ↑↓ | select a session |
-| Enter / click | attach (Remote Control) or watch (cloud) |
+| Enter / click | open chat: the live, two-way chat with the session (Esc goes back) |
 | `a` / `d` | approve / deny a waiting prompt, then `y` to confirm (Enter never answers a prompt) |
 | `s` | send a follow-up to a cloud session |
 | Tab | go to the next panel |
@@ -157,6 +160,19 @@ The footer shows the keys:
 *Frame b: `a` on a session that waits on a permission prompt; the box asks for `y`. Drawn by the real code with placeholder data.*
 
 The room never answers, sends or stops anything by itself. Closing the room does not stop a session.
+
+### First run (new in 0.3.2)
+
+On a new machine the room tells you what is missing, in the panel itself, one line with the exact command:
+
+| State | What the room says |
+|---|---|
+| cloud-sessions is not installed | `Cloud sessions need cloud-sessions: brew install ramene/tap/cloud-sessions (or the cloud-sessions Claude Code plugin)` |
+| cloud-sessions may not use your Claude Code login yet | `Allow your Claude Code login once: cloud-sessions auth use-claude-login (at a terminal; type yes). Until then: tracked sessions only.` |
+| your account has no session yet | `No cloud sessions yet: start one at claude.ai/code or cloud-sessions start --dir <repo> --prompt <text>` |
+| no Remote Control session on this machine | `No Remote Control session here. Start one: claude remote-control --name box (or remote-sessions serve --name box)` and `Other machines: --host a,b or ~/.config/remote-sessions/hosts` |
+
+`cloud-sessions auth use-claude-login` asks you a question. Run it yourself at a terminal and type `yes`; a script or a tool call cannot answer it. Then open the room again: the Cloud panel shows every session of your account and your Routines. Your account's Remote Control sessions that are connected on other machines show in the Remote Control panel with `account` in the host column, without ssh.
 
 ### Several machines (new in 0.3.1)
 
@@ -188,7 +204,7 @@ cmux new-split right --command 'remote-sessions control'
 
 ## With cloud-sessions
 
-[cloud-sessions](https://github.com/ramene/cloud-sessions) drives Claude Code sessions that run in Anthropic's cloud. Install it the same way (`brew install ramene/tap/cloud-sessions`, or the plugin `cloud-sessions@cloud-sessions`). The control room reads `cloud-sessions list` (the binary on PATH), so your cloud sessions then appear in the same room, in the Cloud panel, next to your Remote Control sessions. `remote-sessions control --all` shows all cloud sessions of the account, not only the tracked ones. Enter watches a cloud session (`cloud-sessions watch`) and `s` sends it a follow-up. Without cloud-sessions, the Cloud panel tells you to install it. Cloud sessions do not ask for permission, so there is nothing to approve for them.
+[cloud-sessions](https://github.com/ramene/cloud-sessions) drives Claude Code sessions that run in Anthropic's cloud. Install it the same way (`brew install ramene/tap/cloud-sessions`, or the plugin `cloud-sessions@cloud-sessions`). The control room reads your account's sessions through `cloud-sessions` (the binary on PATH; allow it once with `cloud-sessions auth use-claude-login`), so all your cloud sessions and Routines appear in the same room, in the Cloud panel, next to your Remote Control sessions. No flag and no tracking are needed (from 0.3.2). `remote-sessions control --tracked` shows only the sessions tracked on this machine. Enter opens the live, two-way chat with a cloud session and `s` sends it a follow-up. Without cloud-sessions, the Cloud panel tells you to install it. Cloud sessions do not ask for permission, so there is nothing to approve for them.
 
 ## More
 

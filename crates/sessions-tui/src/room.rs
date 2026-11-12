@@ -1141,6 +1141,17 @@ impl Layout {
 }
 
 fn split_even(total: u16, nr: u16, nc: u16) -> (u16, u16) {
+    // A short list that fits in half the height gets all its rows (0.3.2: with every account session in Cloud, a
+    // share by row count left Remote Control one row); else each panel gets a share by its row count.
+    let half = total / 2;
+    if nr <= half && nr < nc {
+        let r = nr.max(3);
+        return (r, total.saturating_sub(r));
+    }
+    if nc <= half && nc < nr {
+        let c = nc.max(3);
+        return (total.saturating_sub(c), c);
+    }
     let r = ((total as u32 * nr as u32 + (nr as u32 + nc as u32) / 2) / (nr as u32 + nc as u32).max(1)) as u16;
     let r = r.clamp(3, total.saturating_sub(3).max(3));
     (r, total.saturating_sub(r))
@@ -1360,6 +1371,28 @@ fn finish_row(mut spans: Vec<Span<'static>>, w: usize, sel: bool, th: &Theme) ->
     line
 }
 
+/// The Cloud panel's line when cloud-sessions is not installed (first run).
+pub const CLOUD_INSTALL: &str = "Cloud sessions need cloud-sessions: brew install ramene/tap/cloud-sessions (or the cloud-sessions Claude Code plugin)";
+
+/// The Remote Control panel's lines when no session runs here and no other machine is configured (first run).
+pub const REMOTE_EMPTY: [&str; 3] = [
+    "No Remote Control session here. Start one: claude remote-control --name box",
+    "  (or remote-sessions serve --name box)",
+    "Other machines: --host a,b or ~/.config/remote-sessions/hosts",
+];
+
+/// A session without a title: the short form of its id (`session_` and the first 8 characters after it).
+pub fn short_id(id: &str) -> String {
+    let (head, tail) = match id.strip_prefix("session_") {
+        Some(t) => ("session_", t),
+        None => ("", id),
+    };
+    if tail.chars().count() <= 8 {
+        return id.to_string();
+    }
+    format!("{head}{}\u{2026}", tail.chars().take(8).collect::<String>())
+}
+
 /// Width of the host column (shown only when the room lists more than one machine).
 pub const HOST_W: usize = 12;
 
@@ -1457,7 +1490,8 @@ pub fn cloud_line(c: &CloudRow, now_ms: u64, w: usize, sel: bool, th: &Theme) ->
         Some(l) => left.saturating_sub(width(l).min(left / 2)),
         None => left,
     };
-    let title = if c.title.is_empty() { "(untitled)" } else { &c.title };
+    let short = short_id(&c.id);
+    let title = if c.title.trim().is_empty() { &short } else { &c.title };
     let ts = truncate(title, title_w);
     let tw = width(&ts);
     spans.push(sp(ts, if sel { th.bold() } else { Style::default() }));
@@ -1519,8 +1553,11 @@ fn draw_remote(f: &mut Frame, l: &Layout, s: &RoomState, th: &Theme) {
             RemoteStatus::Failed(e) => message_line(&format!("could not list sessions: {e}"), th.error(), w),
             RemoteStatus::NoLogin => message_line("no claude.ai login: sign in to Claude Code, or set REMOTE_SESSIONS_TOKEN", th.warn(), w),
             RemoteStatus::Ready if !s.remote_hosts.is_empty() => message_line("no Remote Control session on these machines (claude remote-control)", th.dim(), w),
-            RemoteStatus::Ready => message_line("no Remote Control session is served here (claude remote-control)", th.dim(), w),
+            RemoteStatus::Ready => message_line(REMOTE_EMPTY[0], th.dim(), w),
         });
+        if s.remote_status == RemoteStatus::Ready && s.remote_hosts.is_empty() {
+            lines.extend(REMOTE_EMPTY[1..].iter().map(|t| message_line(t, th.dim(), w)));
+        }
     } else {
         for r in s.remote.iter().skip(s.top[0]).take(l.caps[0]) {
             lines.push(remote_line(r, w, s.sel == Some(Sel::Remote(r.id.clone())), th));
@@ -1538,7 +1575,7 @@ fn draw_cloud(f: &mut Frame, l: &Layout, s: &RoomState, th: &Theme) {
     }
     let shown = s.cloud.iter().filter(|c| c.kind == RowKind::Session).count();
     let more = match s.cloud_status {
-        CloudStatus::Ready { tracked } if tracked > shown => Some(format!("+{} more tracked", tracked - shown)),
+        CloudStatus::Ready { tracked } if tracked > shown => Some(format!("+{} more", tracked - shown)),
         _ => None,
     };
     let right = range_note(s.top[1], l.caps[1], s.cloud.len()).or(more);
@@ -1550,9 +1587,9 @@ fn draw_cloud(f: &mut Frame, l: &Layout, s: &RoomState, th: &Theme) {
     if s.cloud.is_empty() {
         lines.push(match &s.cloud_status {
             CloudStatus::Loading => message_line("reading ...", th.dim(), w),
-            CloudStatus::Absent => message_line("Install cloud-sessions to see cloud sessions here.", th.dim(), w),
+            CloudStatus::Absent => message_line(CLOUD_INSTALL, th.warn(), w),
             CloudStatus::Failed(e) => message_line(&format!("cloud-sessions could not be read: {e}"), th.error(), w),
-            CloudStatus::Ready { .. } => message_line("no cloud session is tracked (cloud-sessions track <link>)", th.dim(), w),
+            CloudStatus::Ready { .. } => message_line("no cloud session to show (cloud-sessions track <link> adds one started elsewhere)", th.dim(), w),
         });
     } else {
         for c in s.cloud.iter().skip(s.top[1]).take(l.caps[1]) {
@@ -1661,11 +1698,17 @@ fn draw_panel(f: &mut Frame, l: &Layout, s: &RoomState, k: usize, th: &Theme) {
     f.render_widget(Paragraph::new(lines).style(th.body()), inner);
 }
 
-/// The command that drops into a session, shown in the detail panel (and used when a drop-in cannot start).
+/// What Enter does on a row, in the room's one term for it (both panels): open the live chat with the session.
+pub const OPEN_CHAT: &str = "open chat";
+/// The Selected panel's Enter line (Remote Control and cloud rows alike).
+pub const OPEN_CHAT_LINE: &str = "open the chat (two-way: type and press Enter to send, Esc back)";
+
+/// The command to run yourself when the chat cannot open from the room (the fallback in error lines). A cloud session's
+/// fallback only reads: `read only: cloud-sessions watch <id>`.
 pub fn drop_in_text(sel: &Sel) -> String {
     match sel {
         Sel::Remote(id) => format!("remote-sessions attach {id} --tui"),
-        Sel::Cloud(id) => format!("cloud-sessions watch {id}"),
+        Sel::Cloud(id) => format!("read only: cloud-sessions watch {id}"),
         Sel::Panel(_, id) => format!("drop in: {id}"),
     }
 }
@@ -1696,11 +1739,12 @@ fn detail_lines(s: &RoomState, w: usize, th: &Theme) -> Vec<Line<'static>> {
             for p in r.prompts.iter().take(2) {
                 out.push(Line::from(vec![sp(format!("  {} ", th.pause_glyph()), th.warn()), sp(format!("{} ", p.tool), th.bold()), sp(truncate(&tool_args(&p.tool, &p.input, 200), w.saturating_sub(8 + width(&p.tool))), th.code())]));
             }
-            out.push(Line::from(vec![key("Enter "), dim(truncate(&drop_in_text(&Sel::Remote(r.id.clone())), w.saturating_sub(7)))]));
+            out.push(Line::from(vec![key("Enter "), dim(truncate(OPEN_CHAT_LINE, w.saturating_sub(7)))]));
         }
         Some(Sel::Cloud(id)) => {
             let Some(c) = s.cloud_row(id) else { return out };
-            let title = if c.title.is_empty() { "(untitled)" } else { &c.title };
+            let short = short_id(&c.id);
+            let title = if c.title.trim().is_empty() { &short } else { &c.title };
             out.push(Line::from(sp(truncate(title, w), th.bold())));
             let st = c.state(s.now_ms);
             let (_, word, style) = cstate_look(st, th);
@@ -1714,7 +1758,7 @@ fn detail_lines(s: &RoomState, w: usize, th: &Theme) -> Vec<Line<'static>> {
                     out.push(Line::from(vec![dim(if i == 0 { "last  ".into() } else { "      ".into() }), sp(l, Style::default())]));
                 }
             }
-            out.push(Line::from(vec![key("Enter "), dim(truncate(&drop_in_text(&Sel::Cloud(c.id.clone())), w.saturating_sub(7)))]));
+            out.push(Line::from(vec![key("Enter "), dim(truncate(OPEN_CHAT_LINE, w.saturating_sub(7)))]));
             out.push(Line::from(vec![key("s     "), dim("send a follow-up  (cloud sessions raise no prompts: nothing to approve)".to_string())]));
         }
         Some(Sel::Panel(k, id)) => {
@@ -1825,18 +1869,18 @@ fn footer_items(s: &RoomState, th: &Theme) -> Vec<(String, String, u8)> {
             let mut v = vec![(updown.to_string(), "select".to_string(), 1)];
             match &s.sel {
                 Some(Sel::Remote(id)) => {
-                    v.push(("Enter/click".into(), "attach".into(), 1));
+                    v.push(("Enter/click".into(), OPEN_CHAT.into(), 1));
                     if s.remote_row(id).is_some_and(|r| !r.prompts.is_empty()) {
                         v.push(("a".into(), "approve".into(), 2));
                         v.push(("d".into(), "deny".into(), 2));
                     }
                 }
                 Some(Sel::Cloud(_)) => {
-                    v.push(("Enter/click".into(), "watch".into(), 1));
+                    v.push(("Enter/click".into(), OPEN_CHAT.into(), 1));
                     v.push(("s".into(), "send".into(), 2));
                 }
                 Some(Sel::Panel(..)) => v.push(("Enter/click".into(), "drop in".into(), 1)),
-                None => v.push(("Enter/click".into(), "drop in".into(), 1)),
+                None => v.push(("Enter/click".into(), OPEN_CHAT.into(), 1)),
             }
             v.push(("Tab".into(), "panel".into(), 4));
             if s.routines_available {

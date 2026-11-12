@@ -20,7 +20,7 @@ pub const USAGE: &str = "usage: remote-sessions <command>
   stream    <session> [--from <seq>] [--for <s>]  live events, one JSON line each as they arrive (events/stream: message by message, not token by token); falls back to polling
   attach    <session> [--interval 1] [--poll] [--tui [--host <label>] [--no-color] [--ascii]]    terminal client (--tui: full-screen UI): live view (events/stream; polls if it cannot, and says so), sends typed lines, asks Allow? [y/n]; Ctrl-C leaves without stopping
   stop   <session> --yes [--host <ssh-host>]     one SIGINT to the worker: ENDS the session, the server archives it
-  control [--host <h>[,<h>...]] [--all] [--routines] [--no-color] [--ascii] [--once [--size WxH] [--ansi]] [--demo]   the control room: Remote Control sessions of this machine and of each --host, REMOTE_SESSIONS_HOSTS and ~/.config/remote-sessions/hosts host (ssh -n), and cloud sessions, in two panels; arrows or click to select, Enter or a second click to drop in, a/d approve or deny, s send to a cloud session, q/Esc/click x close. --once prints one frame (--ansi: with colors even when piped); --all also lists the account's own sessions (list --unofficial; also REMOTE_SESSIONS_CLOUD_ALL=1); --routines (or R in the room, or REMOTE_SESSIONS_ROUTINES=1) shows each routine as one plain line with its newest runs under it, off by default; --demo uses placeholder sessions
+  control [--host <h>[,<h>...]] [--tracked] [--all] [--no-routines] [--routines] [--no-color] [--ascii] [--once [--size WxH] [--ansi]] [--demo]   the control room: Remote Control sessions of this machine and of each --host, REMOTE_SESSIONS_HOSTS and ~/.config/remote-sessions/hosts host (ssh -n), and cloud sessions, in two panels; arrows or click to select, Enter or a second click to drop in, a/d approve or deny, s send to a cloud session, q/Esc/click x close. --once prints one frame (--ansi: with colors even when piped). By default it shows every session of your claude.ai account (names, repo, state; the account's live Remote Control sessions on other machines as account rows) and the Routines, when cloud-sessions can read the account (cloud-sessions auth use-claude-login); else the sessions tracked here, with one line that says why. --tracked (or REMOTE_SESSIONS_CLOUD_ALL=0): only the sessions tracked on this machine; --all: accepted, the default; --no-routines (or REMOTE_SESSIONS_ROUTINES=0, or R in the room) hides the Routines; --routines: accepted, the default; --demo uses placeholder sessions
   mcp                                            run as an MCP server over stdio
   help [<command>]                               this text, or the help of one command (also <command> --help or -h)";
 
@@ -91,8 +91,10 @@ pub fn option_text(command: &str, name: &str) -> Option<(&'static str, &'static 
         (_, "no-color") => ("--no-color", "no colors (also NO_COLOR)"),
         (_, "ascii") => ("--ascii", "ASCII glyphs only, no colors"),
         (_, "yes") => ("--yes", "required: stop ENDS the session"),
-        (_, "all") => ("--all", "also list the account's own cloud sessions (also REMOTE_SESSIONS_CLOUD_ALL=1)"),
-        (_, "routines") => ("--routines", "show routines and their newest runs (also R in the room, or REMOTE_SESSIONS_ROUTINES=1)"),
+        (_, "tracked") => ("--tracked", "only the cloud sessions tracked on this machine (also REMOTE_SESSIONS_CLOUD_ALL=0); default: every session of the account"),
+        (_, "all") => ("--all", "every session of the account: the default (kept so old commands work)"),
+        (_, "no-routines") => ("--no-routines", "hide the Routines (also R in the room, or REMOTE_SESSIONS_ROUTINES=0)"),
+        (_, "routines") => ("--routines", "show the Routines and their newest runs: the default (kept so old commands work)"),
         (_, "once") => ("--once", "print one frame and exit"),
         (_, "size") => ("--size <WxH>", "with --once: the frame size, at least 30x9 (default 100x28)"),
         (_, "ansi") => ("--ansi", "with --once: colors even when stdout is not a terminal"),
@@ -108,7 +110,7 @@ fn keys_of(command: &str) -> &'static [(&'static str, &'static str)] {
             ("Up/Down, k/j, click", "select a row"),
             ("PgUp/PgDn, Home/End, g/G", "page; first and last row"),
             ("Tab", "the next panel"),
-            ("Enter, a second click", "drop in: attach <id> --tui, or cloud-sessions watch <id>"),
+            ("Enter, a second click", "open chat: the live two-way chat with the session (Remote Control: attach <id> --tui; cloud: in the room); Esc goes back"),
             ("a / d", "approve or deny the waiting prompt of the selected Remote Control session; y confirms, n or Esc cancels"),
             ("s", "send a follow-up to the selected cloud session"),
             ("r", "refresh"),

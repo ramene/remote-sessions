@@ -683,7 +683,7 @@ dependencies = [
 
 [[package]]
 name = "remote-sessions-cli"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "crossterm",
  "remote-sessions-core",
@@ -693,7 +693,7 @@ dependencies = [
 
 [[package]]
 name = "remote-sessions-core"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "chrono",
  "serde",
@@ -858,7 +858,7 @@ dependencies = [
 
 [[package]]
 name = "sessions-tui"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "crossterm",
  "ratatui",

@@ -1,9 +1,9 @@
  remote-sessions · control room        nothing waiting  ·  ● 0 running  ✕ close
 ┌ Remote Control ──────────────────────────────────────────────────────────────┐
-│  no Remote Control session is served here (claude remote-control)            │
+│  No Remote Control session here. Start one: claude remote-control --name box │
 └──────────────────────────────────────────────────────────────────────────────┘
 ┌ Cloud ───────────────────────────────────────────────────────────────────────┐
-│  Install cloud-sessions to see cloud sessions here.                          │
+│  Cloud sessions need cloud-sessions: brew install ramene/tap/cloud-sessions …│
 └──────────────────────────────────────────────────────────────────────────────┘
 ┌ Selected ────────────────────────────────────────────────────────────────────┐
 │ Nothing selected. Up and Down choose a session; Enter drops into it.         │
@@ -13,4 +13,4 @@
 │                                                                              │
 └──────────────────────────────────────────────────────────────────────────────┘
  remote 0s ago  ·  cloud 0s ago
- ↑↓ select  Enter/click drop in  Tab panel  r refresh  q/Esc/✕ close
+ ↑↓ select  Enter/click open chat  Tab panel  r refresh  q/Esc/✕ close

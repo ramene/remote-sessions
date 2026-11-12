@@ -39,7 +39,7 @@ Claude Code has two ways to run a session somewhere other than your terminal:
 | Where the session runs | Anthropic's cloud (claude.ai/code, routines) | Your own machine: a Mac, a Linux box, a VM |
 | How it starts | cloud-sessions starts it for a repo | You run `claude remote-control --name <n>` on that machine |
 | Who holds the process | Anthropic | You: it is an ordinary local worker process |
-| Find a session | the tracked list | the worker processes on a host (`list`, over `ssh -n` for another host) |
+| Find a session | your account's list (`list --unofficial`), and the sessions tracked here | the worker processes on a host (`list`, over `ssh -n` for another host) |
 | Stop | a Stop-button link | one SIGINT to the local worker |
 | Starting sessions | yes | no: `claude remote-control` starts them |
 
@@ -239,10 +239,10 @@ In the permission modal: `1` Allow once, `2` Deny (Enter confirms), `3` or Tab D
 New in 0.3.0. `control` is one full-screen view over your Remote Control sessions and your cloud sessions. It is open source (MIT), like the rest of this repo.
 
 ```console
-$ remote-sessions control                       # this machine
+$ remote-sessions control                       # this machine, every session of your account, and the Routines
 $ remote-sessions control --host mac-a,mac-b    # this machine and two more (ssh); see Several machines
-$ remote-sessions control --all                 # also the account's own cloud sessions (list --unofficial)
-$ remote-sessions control --routines            # show each routine and its newest runs (off by default; R toggles)
+$ remote-sessions control --tracked             # Cloud: only the sessions tracked on this machine (the view before 0.3.2)
+$ remote-sessions control --no-routines         # hide the Routines (R shows or hides them in the room)
 $ remote-sessions control --no-color --ascii    # no color, ASCII glyphs (NO_COLOR works too)
 $ remote-sessions control --once --size 100x28  # print one frame and exit (--ansi keeps the colors in a pipe)
 $ remote-sessions control --demo                # placeholder sessions only
@@ -269,7 +269,7 @@ $ remote-sessions control --demo                # placeholder sessions only
 | Up / Down, `j` / `k` | select a row (the arrows walk Remote Control, then Cloud) |
 | PgUp / PgDn, Home `g` / End `G` | move a page, go to the first or the last row |
 | Tab | go to the next panel |
-| Enter, or a click on the selected row | drop in: `attach --tui` for Remote Control, a two-way view for a cloud session |
+| Enter, or a click on the selected row | open chat: the live, two-way chat with the session (type and press Enter to send, Esc goes back). Remote Control: `attach --tui`; cloud: in the room. If it cannot open, the room names the command to run yourself (for a cloud session the read-only `cloud-sessions watch <id>`). |
 | `a` / `d` | approve / deny the waiting prompt of a Remote Control session, then `y` to confirm (`n` or Esc cancels; Enter never answers a prompt) |
 | `s` | send a follow-up to a cloud session (Enter sends, Esc cancels, Ctrl-U clears the line) |
 | `r` | read every panel again now |
@@ -277,7 +277,23 @@ $ remote-sessions control --demo                # placeholder sessions only
 | `q`, Esc, Ctrl-C, or a click on `x close` | leave the room |
 | mouse wheel | scroll the panel under the pointer |
 
+By default (0.3.2) the Cloud panel shows every session of your claude.ai account, with its name, repo, state and age, and the Routines with their newest runs. You do not have to track a session to see it. For this, `cloud-sessions` must be allowed to use your Claude Code login once (`cloud-sessions auth use-claude-login`, at a terminal). If the account list cannot be read, the panel shows the sessions tracked on this machine and one line that says why and what to run. A session that is tracked here and is also in the account list is one row, with the account's name. A session without a name shows the short form of its id. `--all` and `--routines` are still accepted (they are the default now). `REMOTE_SESSIONS_CLOUD_ALL=0` is the same as `--tracked`, and `REMOTE_SESSIONS_ROUTINES=0` the same as `--no-routines`. 0.3.0 and 0.3.1 showed only the tracked sessions unless you gave `--all --routines`.
+
 Remote Control is read every 3 s and cloud every 10 s, one call each. Cloud sessions raise no permission prompts, so there is nothing to approve for them. The room never answers, sends or stops anything on its own. The frames above come from `cargo run -p sessions-tui --example mock_frames > frames.json`, which prints every cell of them (symbol, colors, bold) as JSON.
+
+### First run
+
+New in 0.3.2. The room never shows a bare empty panel. On a new machine each panel says what is missing, in one line, with the exact command:
+
+| State | What the panel says |
+|---|---|
+| `cloud-sessions` is not installed | Cloud: `Cloud sessions need cloud-sessions: brew install ramene/tap/cloud-sessions (or the cloud-sessions Claude Code plugin)` |
+| `cloud-sessions` is installed, but it may not use your Claude Code login yet | Cloud: `Allow your Claude Code login once: cloud-sessions auth use-claude-login (at a terminal; type yes). Until then: tracked sessions only.` The command asks a question; a script or a tool call cannot answer it for you. |
+| The login is allowed, but the account list still fails | Cloud: `only sessions tracked here: the account list failed (<reason>). Fix: cloud-sessions auth use-claude-login` |
+| The account has no session yet | Cloud: `No cloud sessions yet: start one at claude.ai/code or cloud-sessions start --dir <repo> --prompt <text>` |
+| No Remote Control session on this machine, and no other machine named | Remote Control: `No Remote Control session here. Start one: claude remote-control --name box (or remote-sessions serve --name box)`, then `Other machines: --host a,b or ~/.config/remote-sessions/hosts` |
+
+When nothing runs anywhere, the room needs no login to say so. When `cloud-sessions` can read your account, your account's Remote Control sessions that are connected on other machines are rows in the Remote Control panel, with `account` in the host column (the account list does not name the machine). You see them without ssh. Drop-in, approve and deny work for them by session id, like for any row. Their state needs your claude.ai login on this machine (else `unknown`).
 
 ### Several machines
 

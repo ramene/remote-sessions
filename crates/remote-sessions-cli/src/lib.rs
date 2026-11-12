@@ -132,7 +132,7 @@ pub struct Args {
     pub switches: Vec<String>,
 }
 const VALUE_FLAGS: [&str; 17] = ["from", "for", "request", "interval", "cast", "size", "message", "after", "host", "name", "out", "idle-max", "mp4", "kind", "session", "bind", "token-file"];
-const SWITCH_FLAGS: [&str; 12] = ["yes", "check", "no-endcard", "poll", "tui", "no-color", "ascii", "once", "demo", "ansi", "all", "routines"];
+const SWITCH_FLAGS: [&str; 14] = ["yes", "check", "no-endcard", "poll", "tui", "no-color", "ascii", "once", "demo", "ansi", "all", "routines", "tracked", "no-routines"];
 
 pub fn parse_args(args: &[String]) -> Result<Args> {
     let mut out = Args::default();

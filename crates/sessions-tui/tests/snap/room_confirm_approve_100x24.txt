@@ -17,7 +17,7 @@
 │ session_01ExampleAAAAAAAAAAAAAAA                                                                 │
 │ pid 4242  ⏸ waiting on 1 permission prompt                                                       │
 │   ⏸ Edit src/parser.rs                                                                           │
-│ Enter remote-sessions attach session_01ExampleAAAAAAAAAAAAAAA --tui                              │
+│ Enter open the chat (two-way: type and press Enter to send, Esc back)                            │
 │                                                                                                  │
 └──────────────────────────────────────────────────────────────────────────────────────────────────┘
  remote 0s ago  ·  cloud 0s ago

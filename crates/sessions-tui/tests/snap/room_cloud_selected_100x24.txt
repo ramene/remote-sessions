@@ -17,8 +17,8 @@
 │ Fix the flaky parser test                                                                        │
 │ your-org/your-repo  running  ·  20s ago                                                          │
 │ last  assistant: Reading the failing test                                                        │
-│ Enter cloud-sessions watch session_01ExampleDDDDDDDDDDDDDDD                                      │
+│ Enter open the chat (two-way: type and press Enter to send, Esc back)                            │
 │ s     send a follow-up  (cloud sessions raise no prompts: nothing to approve)                    │
 └──────────────────────────────────────────────────────────────────────────────────────────────────┘
  remote 0s ago  ·  cloud 0s ago
- ↑↓ select  Enter/click watch  s send  Tab panel  r refresh  q/Esc/✕ close
+ ↑↓ select  Enter/click open chat  s send  Tab panel  r refresh  q/Esc/✕ close

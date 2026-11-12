@@ -54,5 +54,5 @@ fn cloud_sessions_missing_is_one_line_not_a_failure() {
         .unwrap();
     let text = String::from_utf8_lossy(&out.stdout);
     assert_eq!(out.status.code(), Some(0), "{text}");
-    assert!(text.contains("Install cloud-sessions to see cloud sessions here."), "{text}");
+    assert!(text.contains("Cloud sessions need cloud-sessions: brew install ramene/tap/cloud-sessions"), "{text}");
 }

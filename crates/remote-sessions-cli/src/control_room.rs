@@ -27,7 +27,15 @@ pub const DEFAULT_CLOUD_MAX: usize = 50;
 /// Runs shown under each routine. A fixed argv, never built from remote text.
 const ROUTINE_RUNS: &str = "3";
 pub const ABSENT: &str = "cloud-sessions is not installed";
-pub const INSTALL_HINT: &str = "Install cloud-sessions to see cloud sessions here.";
+pub const INSTALL_HINT: &str = sessions_tui::room::CLOUD_INSTALL;
+/// The Cloud panel's line when the Claude Code login is not allowed for cloud-sessions yet (first run).
+pub const ALLOW_LOGIN: &str = "Allow your Claude Code login once: cloud-sessions auth use-claude-login (at a terminal; type yes). Until then: tracked sessions only.";
+/// The Cloud panel's line when the account list answers with no session at all (first run).
+pub const EMPTY_ACCOUNT: &str = "No cloud sessions yet: start one at claude.ai/code or cloud-sessions start --dir <repo> --prompt <text>";
+/// The host label of the account's Remote Control sessions on other machines (the account list names no machine).
+pub const ACCOUNT_HOST: &str = "account";
+/// One account list serves both panels of one refresh.
+const ACCOUNT_TTL: Duration = Duration::from_secs(2);
 const LOGIN_RETRY: Duration = Duration::from_secs(30);
 type Runner = Box<dyn Fn(&[String], Option<&str>, Duration) -> Result<String> + Send + Sync>;
 type Spawner = Box<dyn Fn(&str, &[String]) -> Result<String> + Send + Sync>;
@@ -44,10 +52,16 @@ pub struct LiveRoom {
     /// Runs a program with the terminal handed over; returns once it exits.
     inherit: Spawner,
     cloud_max: usize,
-    /// Read the account's sessions (`list --unofficial`), not only the ones tracked on this machine.
+    /// Read the account's sessions (`list --unofficial`), not only the ones tracked on this machine. On by default;
+    /// off with `--tracked` or `REMOTE_SESSIONS_CLOUD_ALL=0`.
     cloud_all: bool,
-    /// Routines shown (the `R` key, `--routines`, `REMOTE_SESSIONS_ROUTINES=1`). Off: no `routines` call at all.
+    /// Routines shown (the `R` key). On by default; off with `--no-routines` or `REMOTE_SESSIONS_ROUTINES=0`.
+    /// Off: no `routines` call at all.
     routines: AtomicBool,
+    /// The last account list read and when ([`ACCOUNT_TTL`]).
+    account_cache: Mutex<Option<(Instant, Result<Value>)>>,
+    /// cloud-sessions 0.2.3 or later (a reply had `view`): tracked lookups use `list --tracked`.
+    paged_list: AtomicBool,
     /// Panels beyond Remote Control and Cloud (none in the public build).
     extra: Vec<Box<dyn RoomPanel>>,
 }
@@ -55,9 +69,10 @@ pub struct LiveRoom {
 impl LiveRoom {
     pub fn new(ctx: Ctx, host: Option<String>) -> LiveRoom {
         let cloud_max = (ctx.env)("REMOTE_SESSIONS_CLOUD_MAX").and_then(|v| v.parse().ok()).filter(|n| (1..=50).contains(n)).unwrap_or(DEFAULT_CLOUD_MAX);
-        let cloud_all = (ctx.env)("REMOTE_SESSIONS_CLOUD_ALL").is_some_and(|v| v.trim() == "1");
-        let routines = AtomicBool::new((ctx.env)("REMOTE_SESSIONS_ROUTINES").is_some_and(|v| v.trim() == "1"));
-        LiveRoom { ctx, host, hosts: vec![], local: String::new(), login: Mutex::new((None, None)), cloud: Box::new(run_cloud), inherit: Box::new(run_inherit), cloud_max, cloud_all, routines, extra: linked_panels() }
+        // Every account session and the Routines by default; "0" turns each off.
+        let cloud_all = !(ctx.env)("REMOTE_SESSIONS_CLOUD_ALL").is_some_and(|v| v.trim() == "0");
+        let routines = AtomicBool::new(!(ctx.env)("REMOTE_SESSIONS_ROUTINES").is_some_and(|v| v.trim() == "0"));
+        LiveRoom { ctx, host, hosts: vec![], local: String::new(), login: Mutex::new((None, None)), cloud: Box::new(run_cloud), inherit: Box::new(run_inherit), cloud_max, cloud_all, routines, account_cache: Mutex::new(None), paged_list: AtomicBool::new(false), extra: linked_panels() }
     }
     /// List these machines too (over ssh -n), beside this one, which is labeled `local`.
     pub fn with_hosts(mut self, hosts: Vec<String>, local: String) -> LiveRoom {
@@ -73,15 +88,30 @@ impl LiveRoom {
     fn panel_cx(&self) -> PanelCx<'_> {
         PanelCx { env: &*self.ctx.env, host: self.host.as_deref() }
     }
-    /// `--all`: read the account's sessions too (also `REMOTE_SESSIONS_CLOUD_ALL=1`).
+    /// `--all`: read the account's sessions. This is the default; the option stays accepted (it also undoes
+    /// `REMOTE_SESSIONS_CLOUD_ALL=0`).
     pub fn with_all(mut self, all: bool) -> LiveRoom {
         self.cloud_all |= all;
         self
     }
-    /// `--routines`: start with Routines shown (also `REMOTE_SESSIONS_ROUTINES=1`).
+    /// `--tracked`: show only the sessions tracked on this machine (the view before 0.3.2). Wins over `--all`.
+    pub fn with_tracked(mut self, tracked: bool) -> LiveRoom {
+        if tracked {
+            self.cloud_all = false;
+        }
+        self
+    }
+    /// `--routines`: start with Routines shown. This is the default; it undoes `REMOTE_SESSIONS_ROUTINES=0`.
     pub fn with_routines(self, on: bool) -> LiveRoom {
         if on {
             self.routines.store(true, Ordering::Relaxed);
+        }
+        self
+    }
+    /// `--no-routines`: start with Routines hidden (`R` shows them). Wins over `--routines`.
+    pub fn with_no_routines(self, off: bool) -> LiveRoom {
+        if off {
+            self.routines.store(false, Ordering::Relaxed);
         }
         self
     }
@@ -119,12 +149,82 @@ impl LiveRoom {
         Ok(v)
     }
 
-    /// Title and repo of a tracked cloud session (one `cloud-sessions list`), for the drop-in header. Untrusted text.
+    /// The account's sessions: `list --unofficial` (cloud-sessions 0.2.2), or `list` when that option is gone and
+    /// `list` carries the account list itself (0.2.3). Read at most once per [`ACCOUNT_TTL`] for both panels.
+    /// `Err(ABSENT)` when cloud-sessions is not installed; any other error says why the account list is not usable.
+    fn account(&self) -> Result<Value> {
+        if let Ok(g) = self.account_cache.lock() {
+            if let Some((at, v)) = &*g {
+                if at.elapsed() < ACCOUNT_TTL {
+                    return v.clone();
+                }
+            }
+        }
+        let v = self.read_account();
+        if let Ok(mut g) = self.account_cache.lock() {
+            *g = Some((Instant::now(), v.clone()));
+        }
+        v
+    }
+    fn read_account(&self) -> Result<Value> {
+        let v = match self.cloud_json(&["list", "--unofficial"]) {
+            Err(e) if e.contains("Unknown option") || e.contains("unknown option") => self.cloud_json(&["list"])?,
+            other => other?,
+        };
+        if v.get("view").is_some() {
+            self.paged_list.store(true, Ordering::Relaxed);
+        }
+        if v["remote"]["data"].is_array() {
+            return Ok(v);
+        }
+        let why = v["remote"]["error"].as_str().or_else(|| v["account_error"].as_str()).unwrap_or("the reply has no account list");
+        Err(why.chars().take(80).collect())
+    }
+    /// The sessions tracked on this machine: `list --tracked` with a cloud-sessions whose `list` reads every page of the
+    /// account (0.2.3 and later: its replies carry `view`), plain `list` before that. Plain `list` on 0.2.3 would fetch
+    /// every account page for one lookup.
+    fn tracked_listing(&self) -> Result<Value> {
+        if self.paged_list.load(Ordering::Relaxed) {
+            return self.cloud_json(&["list", "--tracked"]);
+        }
+        let v = self.cloud_json(&["list"])?;
+        if v.get("view").is_some() {
+            self.paged_list.store(true, Ordering::Relaxed);
+        }
+        Ok(v)
+    }
+    /// The account's live Remote Control sessions (any machine), when the account list is read; else none.
+    fn account_bridge(&self) -> Vec<String> {
+        if !self.cloud_all {
+            return vec![];
+        }
+        self.account().ok().map(|v| live_bridge_ids(&v)).unwrap_or_default()
+    }
+    /// This machine's label in the host column when account rows are shown beside it.
+    fn here(&self) -> String {
+        if self.local.is_empty() {
+            "here".to_string()
+        } else {
+            self.local.clone()
+        }
+    }
+    /// The one Cloud panel line after the account list failed: why, and the command that fixes it.
+    fn account_hint(&self, error: &str) -> String {
+        let allowed = self.cloud_json(&["auth", "status"]).ok().and_then(|v| v["claude_login_allowed"].as_bool());
+        if allowed == Some(false) {
+            return ALLOW_LOGIN.to_string();
+        }
+        format!("only sessions tracked here: the account list failed ({error}). Fix: cloud-sessions auth use-claude-login")
+    }
+
+    /// Title and repo of a cloud session for the drop-in header: from the account list when it is read, else from the
+    /// tracked list. Untrusted text.
     fn cloud_meta(&self, id: &str) -> (String, String) {
-        let Ok(v) = self.cloud_json(&["list"]) else { return (String::new(), String::new()) };
-        let row = v["tracked"].as_array().and_then(|a| a.iter().find(|t| t["session_id"].as_str() == Some(id)).cloned()).unwrap_or(Value::Null);
+        let listing = if self.cloud_all { self.account().ok() } else { None };
+        let Some(v) = listing.or_else(|| self.tracked_listing().ok()) else { return (String::new(), String::new()) };
+        let row = list_rows(&v).into_iter().find(|r| r.id == id);
         let clean = |s: &str| sessions_tui::text::clean(s, 200);
-        (clean(row["title"].as_str().unwrap_or("")), clean(row["repo"].as_str().unwrap_or("")))
+        row.map(|r| (clean(&r.title), clean(&r.repo))).unwrap_or_default()
     }
 
     /// The real conversation of a session, oldest first: (kind, cleaned text) for user and assistant turns only.
@@ -150,7 +250,7 @@ impl LiveRoom {
             return Err("not a valid session id".into());
         }
         let src = DropSource {
-            label: "inside a cloud session".into(),
+            label: "live chat with a cloud session".into(),
             info: format!("{id}  \u{00b7}  two-way  \u{00b7}  live, refreshed every 3 s"),
             name: "claude".into(),
             every: Duration::from_secs(3),
@@ -430,7 +530,7 @@ fn draw_drop_at(v: &DropView, out: &mut impl std::io::Write, size: (usize, usize
     screen.push(format!(" {GOLD}\u{203a}{RS} {shown}"));
     screen.push(format!("{DIM}{rule}{RS}"));
     let note = if v.note.is_empty() { String::new() } else { format!("   {GOLD}{}{RS}", fit(&v.note, w / 2)) };
-    screen.push(format!(" {DIM}enter send  \u{00b7}  esc back to the control room  \u{00b7}  ctrl-u clear line{RS}{note}"));
+    screen.push(format!(" {DIM}live chat  \u{00b7}  enter send  \u{00b7}  esc back to the control room  \u{00b7}  ctrl-u clear line{RS}{note}"));
     match logo {
         None => {
             let _ = queue!(out, terminal::Clear(terminal::ClearType::All));
@@ -549,7 +649,13 @@ impl RoomBackend for LiveRoom {
                     ws.sort_by(|a, b| a.session_id.cmp(&b.session_id));
                     workers.extend(ws.into_iter().map(|w| (label.clone(), w)));
                 }
-                Err(e) if !several => return RemoteSnapshot { hosts: vec![], rows: vec![], status: RemoteStatus::Failed(e) },
+                // This machine only: its error is the panel's message, unless the account has Remote Control
+                // sessions elsewhere; then this machine is one error row above them.
+                Err(e) if !several && self.account_bridge().is_empty() => return RemoteSnapshot { hosts: vec![], rows: vec![], status: RemoteStatus::Failed(e) },
+                Err(e) if !several => {
+                    let here = self.here();
+                    down.push(RemoteRow { host: here.clone(), id: format!("host:{here}"), pid: None, state: RState::HostDown(e), prompts: vec![] });
+                }
                 Err(e) => down.push(RemoteRow { host: label.clone(), id: format!("host:{label}"), pid: None, state: RState::HostDown(e), prompts: vec![] }),
             }
         }
@@ -557,31 +663,54 @@ impl RoomBackend for LiveRoom {
         workers.retain(|(_, w)| seen.insert(w.session_id.clone()));
         workers.truncate(MAX_REMOTE);
         // Rows in host order (--host, REMOTE_SESSIONS_HOSTS, the hosts file), a failed host's row at its place.
-        let order: Vec<String> = targets.iter().map(|t| t.clone().unwrap_or_else(|| self.local.clone())).collect();
+        let order: Vec<String> = if several { targets.iter().map(|t| t.clone().unwrap_or_else(|| self.local.clone())).collect() } else { vec![] };
+        // The account's Remote Control sessions that run on other machines (live bridge sessions in the account list),
+        // when the account list is read. Not found by ps and not over ssh: answered by session id, like any row.
+        let local_ids: std::collections::HashSet<String> = workers.iter().map(|(_, w)| w.session_id.clone()).collect();
+        let account: Vec<String> = self.account_bridge().into_iter().filter(|id| !local_ids.contains(id)).collect();
+        let mut order = order;
+        let mut targets: Vec<(String, String, Option<u32>)> = workers.iter().map(|(h, w)| (h.clone(), w.session_id.clone(), Some(w.pid))).collect();
+        if !account.is_empty() {
+            // A host column for every row, so "account" rows stand apart from this machine's rows.
+            let here = self.here();
+            if !several {
+                for t in targets.iter_mut() {
+                    t.0 = here.clone();
+                }
+                order = vec![here];
+            }
+            order.push(ACCOUNT_HOST.into());
+            targets.extend(account.into_iter().take(MAX_REMOTE.saturating_sub(targets.len())).map(|id| (ACCOUNT_HOST.to_string(), id, None)));
+        }
+        let hosts = if several || order.len() > 1 { order.clone() } else { vec![] };
+        // Nothing runs anywhere: no session to read, so no login is needed to say so.
+        if targets.is_empty() && down.is_empty() {
+            return RemoteSnapshot { hosts, rows: vec![], status: RemoteStatus::Ready };
+        }
         let by_host = |mut rows: Vec<RemoteRow>| {
-            if several {
-                rows.sort_by_key(|r| order.iter().position(|h| *h == r.host).unwrap_or(usize::MAX));
+            if !hosts.is_empty() {
+                rows.sort_by_key(|r| hosts.iter().position(|h| *h == r.host).unwrap_or(usize::MAX));
             }
             rows
         };
         let Some(client) = self.client() else {
-            let mut rows: Vec<RemoteRow> = workers.iter().map(|(h, w)| RemoteRow { host: h.clone(), id: w.session_id.clone(), pid: Some(w.pid), state: RState::Unknown, prompts: vec![] }).collect();
+            let mut rows: Vec<RemoteRow> = targets.iter().map(|(h, id, pid)| RemoteRow { host: h.clone(), id: id.clone(), pid: *pid, state: RState::Unknown, prompts: vec![] }).collect();
             rows.extend(down);
-            return RemoteSnapshot { hosts: if several { order.clone() } else { vec![] }, rows: by_host(rows), status: RemoteStatus::NoLogin };
+            return RemoteSnapshot { hosts: hosts.clone(), rows: by_host(rows), status: RemoteStatus::NoLogin };
         };
         // Prompts are read by claude.ai session id through the session API: the same for a session on any host.
         let mut rows: Vec<RemoteRow> = std::thread::scope(|scope| {
-            let handles: Vec<_> = workers
+            let handles: Vec<_> = targets
                 .iter()
-                .map(|(h, w)| {
+                .map(|(h, id, pid)| {
                     let client = &client;
                     scope.spawn(move || {
-                        let (state, prompts) = match client.pending_prompts(&w.session_id) {
+                        let (state, prompts) = match client.pending_prompts(id) {
                             Ok(ps) if ps.is_empty() => (RState::Idle, vec![]),
                             Ok(ps) => (RState::Waiting, ps.into_iter().map(|p| PromptInfo { request_id: p.request_id, tool: p.tool_name, input: p.input }).collect()),
                             Err(e) => (RState::Unreadable(e), vec![]),
                         };
-                        RemoteRow { host: h.clone(), id: w.session_id.clone(), pid: Some(w.pid), state, prompts }
+                        RemoteRow { host: h.clone(), id: id.clone(), pid: *pid, state, prompts }
                     })
                 })
                 .collect();
@@ -592,18 +721,21 @@ impl RoomBackend for LiveRoom {
             self.forget_login();
         }
         rows.extend(down);
-        RemoteSnapshot { hosts: if several { order.clone() } else { vec![] }, rows: by_host(rows), status: RemoteStatus::Ready }
+        RemoteSnapshot { hosts: hosts.clone(), rows: by_host(rows), status: RemoteStatus::Ready }
     }
 
     fn cloud(&self) -> CloudSnapshot {
-        // One `list` call (or `list --unofficial`, falling back to `list`), then one `routines` call. The argv is fixed.
+        // The account list (one call, shared with the Remote Control panel for ACCOUNT_TTL), else `list` (tracked
+        // here), then one `routines` call. The argv is fixed.
         let mut notes: Vec<CloudRow> = Vec::new();
+        let mut account_failed = false;
         let account = if self.cloud_all {
-            match self.cloud_json(&["list", "--unofficial"]) {
-                Ok(v) if v["remote"]["data"].is_array() => Some(v),
+            match self.account() {
+                Ok(v) => Some(v),
                 Err(e) if e == ABSENT => return CloudSnapshot { rows: vec![], status: CloudStatus::Absent },
-                _ => {
-                    notes.push(note_row("account", "account list unavailable: showing only sessions tracked on this machine"));
+                Err(e) => {
+                    account_failed = true;
+                    notes.push(note_row("account", &self.account_hint(&e)));
                     None
                 }
             }
@@ -613,17 +745,33 @@ impl RoomBackend for LiveRoom {
         let account_ok = account.is_some();
         let listing = match account {
             Some(v) => v,
-            None => match self.cloud_json(&["list"]) {
+            None => match self.tracked_listing() {
                 Err(e) if e == ABSENT => return CloudSnapshot { rows: vec![], status: CloudStatus::Absent },
                 Err(e) => return CloudSnapshot { rows: vec![], status: CloudStatus::Failed(e) },
-                Ok(v) => v,
+                // The tracked view only: a cloud-sessions that adds the account list to `list` is not read here.
+                Ok(mut v) => {
+                    if let Some(o) = v.as_object_mut() {
+                        o.remove("remote");
+                    }
+                    v
+                }
             },
         };
         let mut sessions = list_rows(&listing);
+        if account_ok {
+            // Live Remote Control sessions of the account are rows of the Remote Control panel, not here.
+            let live = live_bridge_ids(&listing);
+            sessions.retain(|r| !live.contains(&r.id));
+            let none = listing["remote"]["data"].as_array().is_some_and(Vec::is_empty) && listing["tracked"].as_array().map_or(true, Vec::is_empty);
+            if none {
+                notes.push(note_row("empty", EMPTY_ACCOUNT));
+            }
+        }
         let mut total = if account_ok { sessions.len() } else { listing["tracked"].as_array().map_or(0, Vec::len) };
         let mut rows = notes;
-        // Off (the default): no `routines` call, no rows, no note. Costs nothing.
-        if self.routines.load(Ordering::Relaxed) {
+        // Hidden (R, --no-routines, REMOTE_SESSIONS_ROUTINES=0): no `routines` call, no rows, no note. After an account
+        // list failure the one note above says why; routines need the same login and are not asked.
+        if self.routines.load(Ordering::Relaxed) && !account_failed {
             match self.cloud_json(&["routines", "--runs", ROUTINE_RUNS]) {
                 Ok(v) => rows.extend(routine_rows(&v)),
                 Err(e) if e == ABSENT => {}
@@ -700,7 +848,7 @@ impl RoomBackend for LiveRoom {
         // Cloud: a readable conversation rendered in-process, with a clean return — never the raw `watch` JSON, and
         // never a shelled command whose Ctrl-C takes the room down with it.
         if let Sel::Cloud(id) = target {
-            return self.cloud_read(id);
+            return self.cloud_read(id).map_err(|e| format!("{e}. {}", drop_in_text(target)));
         }
         // An extra panel's row: the panel drops in through the same two-way view.
         if let Sel::Panel(k, id) = target {
@@ -831,6 +979,17 @@ pub fn list_rows(listing: &Value) -> Vec<CloudRow> {
         let raw = t["session_id"].as_str().unwrap_or("");
         let Some(id) = session_form(raw).or_else(|| valid_id(raw).then(|| raw.to_string())) else { continue };
         let at = t["last_seen"].as_u64().or_else(|| t["started_at"].as_u64()).map(to_ms);
+        // The same session tracked twice (`cse_` and `session_` forms): one row.
+        if let Some(r) = rows.iter_mut().find(|r| r.id == id) {
+            if r.title.trim().is_empty() {
+                r.title = t["title"].as_str().unwrap_or("").to_string();
+            }
+            if r.repo.is_empty() {
+                r.repo = t["repo"].as_str().unwrap_or("").to_string();
+            }
+            r.last_at_ms = r.last_at_ms.max(at);
+            continue;
+        }
         rows.push(list_row(id, t["title"].as_str().unwrap_or(""), t["repo"].as_str().unwrap_or(""), at, false, RowKind::Session));
     }
     for item in listing["remote"]["data"].as_array().map(Vec::as_slice).unwrap_or(&[]) {
@@ -838,9 +997,10 @@ pub fn list_rows(listing: &Value) -> Vec<CloudRow> {
         let created = item["created_at"].as_str().and_then(iso_ms);
         let at = item["last_event_at"].as_str().and_then(iso_ms).or_else(|| item["updated_at"].as_str().and_then(iso_ms)).or(created);
         let finished = status_finished(item["status"].as_str().unwrap_or(""));
+        // A tracked session the account list also returns: one row, with the account's title (its name on claude.ai).
         if let Some(r) = rows.iter_mut().find(|r| r.id == id) {
-            if r.title.trim().is_empty() {
-                r.title = item["title"].as_str().unwrap_or("").to_string();
+            if let Some(t) = item["title"].as_str().filter(|t| !t.trim().is_empty()) {
+                r.title = t.to_string();
             }
             if r.repo.is_empty() {
                 r.repo = remote_repo(item);
@@ -853,6 +1013,19 @@ pub fn list_rows(listing: &Value) -> Vec<CloudRow> {
     }
     rows.sort_by(|a, b| b.last_at_ms.cmp(&a.last_at_ms).then_with(|| a.id.cmp(&b.id)));
     rows
+}
+
+/// The account's live Remote Control sessions (any machine): `environment_kind` "bridge", not archived, and
+/// `connection_status` "connected", in the `session_` form. The account list gives no machine name.
+pub fn live_bridge_ids(listing: &Value) -> Vec<String> {
+    listing["remote"]["data"]
+        .as_array()
+        .map(Vec::as_slice)
+        .unwrap_or(&[])
+        .iter()
+        .filter(|i| i["environment_kind"].as_str() == Some("bridge") && i["connection_status"].as_str() == Some("connected") && !status_finished(i["status"].as_str().unwrap_or("")))
+        .filter_map(|i| i["id"].as_str().and_then(session_form))
+        .collect()
 }
 
 fn note_row(key: &str, text: &str) -> CloudRow {
@@ -1053,8 +1226,8 @@ mod tests {
             Ok(listing.clone())
         });
         let (room, _) = live(runner);
-        let snap = room.cloud();
-        assert_eq!(*calls.lock().unwrap(), vec!["list".to_string()], "routines are off by default: one listing, no routines call, no per-session reads");
+        let snap = room.with_tracked(true).with_no_routines(true).cloud();
+        assert_eq!(*calls.lock().unwrap(), vec!["list".to_string()], "--tracked --no-routines: one listing, no routines call, no per-session reads");
         assert_eq!(snap.status, CloudStatus::Ready { tracked: 3 });
         assert_eq!(snap.rows.iter().map(|r| r.id.as_str()).collect::<Vec<_>>(), vec![DEMO_E, DEMO_D], "newest first; the unsafe id is dropped");
     }
@@ -1173,7 +1346,7 @@ mod tests {
         let rows = list_rows(&listing);
         assert_eq!(rows.iter().map(|r| r.id.as_str()).collect::<Vec<_>>(), vec![DEMO_D, "session_01ExampleOTHERMAC", DEMO_E], "newest first; unusable ids dropped");
         let d = &rows[0];
-        assert_eq!((d.title.as_str(), d.repo.as_str(), d.last_at_ms, d.finished), ("Tracked title", "your-org/your-repo", Some(1_794_036_000_000), false), "the tracked title stays; the account list adds the repo and the activity");
+        assert_eq!((d.title.as_str(), d.repo.as_str(), d.last_at_ms, d.finished), ("Remote title", "your-org/your-repo", Some(1_794_036_000_000), false), "one row with the account's title; the account list adds the repo and the activity");
         let other = &rows[1];
         assert_eq!((other.title.as_str(), other.finished, other.last_at_ms), ("Other Mac", true, Some(1_793_930_400_000)));
         assert!(rows.iter().all(|r| r.from_list && r.kind == RowKind::Session));
@@ -1181,26 +1354,38 @@ mod tests {
     }
 
     #[test]
-    fn all_asks_for_the_account_list_and_falls_back_to_tracked_with_a_note() {
+    fn a_failed_account_list_falls_back_to_tracked_with_one_line_that_says_why_and_how_to_fix() {
         let (runner, calls) = calls_runner(|k| match k {
             "list --unofficial" => Err("HTTP 500".into()),
+            "auth status" => Ok(r#"{"ok":true,"claude_login_allowed":true,"keychain":true,"token_file":false}"#.into()),
             "list" => Ok(tracked_json(2)),
             _ => Err("Unknown command routines".into()),
         });
         let (room, _) = live(runner);
-        let snap = room.with_all(true).with_routines(true).cloud();
-        assert_eq!(*calls.lock().unwrap(), vec!["list --unofficial", "list", "routines --runs 3"]);
+        let snap = room.cloud();
+        assert_eq!(*calls.lock().unwrap(), vec!["list --unofficial", "auth status", "list"], "routines need the same login: not asked after the account list failed");
         assert_eq!(snap.status, CloudStatus::Ready { tracked: 2 });
         let notes: Vec<&str> = snap.rows.iter().filter(|r| r.kind == RowKind::Note).map(|r| r.title.as_str()).collect();
-        assert_eq!(notes, vec!["account list unavailable: showing only sessions tracked on this machine", "routines unavailable: Unknown command routines"], "a note each, never an error panel");
+        assert_eq!(notes, vec!["only sessions tracked here: the account list failed (HTTP 500). Fix: cloud-sessions auth use-claude-login"], "ONE line, never an error panel");
         assert_eq!(snap.rows.iter().filter(|r| r.kind == RowKind::Session).count(), 2);
+        // the login is not allowed yet (first run): the line names the one command, and that it needs a typed yes
+        let (runner, _) = calls_runner(|k| match k {
+            "list --unofficial" => Err("Reading events needs a token. Run `cloud-sessions auth use-claude-login` in a terminal".into()),
+            "auth status" => Ok(r#"{"ok":true,"claude_login_allowed":false,"keychain":false,"token_file":false}"#.into()),
+            "list" => Ok(serde_json::json!({"ok": true, "tracked": []}).to_string()),
+            _ => Err("x".into()),
+        });
+        let (room, _) = live(runner);
+        let snap = room.cloud();
+        assert_eq!(snap.rows.iter().map(|r| r.title.as_str()).collect::<Vec<_>>(), vec![ALLOW_LOGIN]);
+        assert!(ALLOW_LOGIN.contains("cloud-sessions auth use-claude-login") && ALLOW_LOGIN.contains("type yes"));
         // the account list answering is one call, no fallback
         let (runner, calls) = calls_runner(|k| match k {
             "list --unofficial" => Ok(serde_json::json!({"ok": true, "tracked": [], "remote": {"data": [{"id": "cse_01ExampleDDDDDDDDDDDDDDD", "title": "T", "status": "active", "last_event_at": "2026-11-07T07:20:00Z"}]}}).to_string()),
             _ => Err(ABSENT.to_string()),
         });
         let (room, _) = live(runner);
-        let snap = room.with_all(true).with_routines(true).cloud();
+        let snap = room.cloud();
         assert_eq!(*calls.lock().unwrap(), vec!["list --unofficial", "routines --runs 3"]);
         assert_eq!((snap.rows.len(), &snap.status), (1, &CloudStatus::Ready { tracked: 1 }), "routines absent: no rows, no note");
     }
@@ -1213,7 +1398,7 @@ mod tests {
             _ => Err(ABSENT.to_string()),
         });
         let (room, _) = live(runner);
-        let snap = room.with_routines(true).cloud();
+        let snap = room.with_tracked(true).cloud();
         assert_eq!(*calls.lock().unwrap(), vec!["list", "routines --runs 3"], "one list and one routines call per poll");
         let shape: Vec<(String, String)> = snap
             .rows
@@ -1251,7 +1436,7 @@ mod tests {
             _ => Err(ABSENT.to_string()),
         });
         let (room, _) = live(runner);
-        let snap = room.with_routines(true).cloud();
+        let snap = room.with_tracked(true).cloud();
         let ids: Vec<&str> = snap.rows.iter().filter(|r| !r.is_group()).map(|r| r.id.as_str()).collect();
         assert_eq!(ids.iter().filter(|i| **i == ROUTINE_ID_1).count(), 1, "{ids:?}");
         assert_eq!(ids.len(), 3, "two runs plus the one plain session: {ids:?}");
@@ -1278,10 +1463,12 @@ mod tests {
             let (l, r) = (listing.clone(), routines.clone());
             let (runner, calls) = calls_runner(move |k| if k.starts_with("list") { Ok(l.clone()) } else { Ok(r.clone()) });
             let (room, _) = live(runner);
-            let snap = room.with_all(all).with_routines(true).cloud();
+            let room = room.with_tracked(!all);
+            let snap = room.cloud();
             assert!(snap.rows.len() >= 3, "{:?}", snap.rows);
+            let _ = room.remote();
             for c in calls.lock().unwrap().iter() {
-                assert!(["list", "list --unofficial", "routines --runs 3"].contains(&c.as_str()), "unexpected argv {c:?}");
+                assert!(["list", "list --tracked", "list --unofficial", "auth status", "routines --runs 3"].contains(&c.as_str()), "unexpected argv {c:?}");
             }
         }
     }
@@ -1291,6 +1478,7 @@ mod tests {
         assert_eq!(DEFAULT_CLOUD_MAX, 50);
         let (runner, _) = calls_runner(|k| if k == "list" { Ok(tracked_json(41)) } else { Err(ABSENT.to_string()) });
         let (room, _) = live(runner);
+        let room = room.with_tracked(true);
         let th = sessions_tui::theme::Theme::detect(true, false);
         let frame = render_once(&room, "h", false, (110, 30), &th, false, 1_794_100_000_000, None);
         assert!(!frame.contains("..."), "no row waits for a read:\n{frame}");
@@ -1298,7 +1486,7 @@ mod tests {
         // 60 tracked entries: the default cap shows 50 rows and says how many more there are
         let (runner, _) = calls_runner(|k| if k == "list" { Ok(tracked_json(60)) } else { Err(ABSENT.to_string()) });
         let (room, _) = live(runner);
-        let snap = room.cloud();
+        let snap = room.with_tracked(true).cloud();
         assert_eq!((snap.rows.len(), snap.status), (50, CloudStatus::Ready { tracked: 60 }));
     }
 
@@ -1309,20 +1497,22 @@ mod tests {
             _ => Err(ABSENT.to_string()),
         });
         let (room, _) = live(runner);
-        (room, calls)
+        (room.with_tracked(true), calls)
     }
 
     #[test]
-    fn routines_are_off_by_default_no_call_no_rows_and_no_note() {
+    fn routines_hidden_make_no_call_no_rows_and_no_note() {
         let (room, calls) = routines_world();
-        assert!(room.routines_supported() && !room.routines_on());
+        assert!(room.routines_supported() && room.routines_on(), "shown by default");
+        let room = room.with_no_routines(true);
+        assert!(!room.routines_on());
         let snap = room.cloud();
         assert_eq!(*calls.lock().unwrap(), vec!["list"], "zero routines calls while off");
         assert!(snap.rows.iter().all(|r| r.kind == RowKind::Session), "no routine rows and no note line: {:?}", snap.rows.iter().map(|r| &r.id).collect::<Vec<_>>());
         // a runner that fails routines would show a note only when routines are on: off, it is never asked
         let (runner, calls) = calls_runner(|k| if k == "list" { Ok(tracked_json(1)) } else { Err("HTTP 500".into()) });
         let (room, _) = live(runner);
-        let snap = room.with_all(true).cloud();
+        let snap = room.with_tracked(true).with_no_routines(true).cloud();
         assert!(snap.rows.iter().all(|r| r.kind != RowKind::Routine { schedule: String::new(), enabled: false } && r.kind != RowKind::Run), "{:?}", snap.rows);
         assert!(!calls.lock().unwrap().iter().any(|c| c.starts_with("routines")));
     }
@@ -1340,24 +1530,24 @@ mod tests {
         let snap = room.cloud();
         assert_eq!(*calls.lock().unwrap(), vec!["list"]);
         assert!(snap.rows.iter().all(|r| r.kind == RowKind::Session));
-        // starting on: the builder and the environment variable
+        // on by default; --routines is accepted and keeps them on; REMOTE_SESSIONS_ROUTINES=0 and --tracked turn things off
         let (room, calls) = routines_world();
         let _ = room.with_routines(true).cloud();
         assert_eq!(calls.lock().unwrap().len(), 2);
         let (runner, calls) = calls_runner(|k| if k == "list" { Ok(tracked_json(1)) } else { Ok(routines_json()) });
         let mut ctx = crate::ctx_from_env();
-        ctx.env = Box::new(|k| (k == "REMOTE_SESSIONS_ROUTINES").then(|| "1".to_string()));
+        ctx.env = Box::new(|k| (k == "REMOTE_SESSIONS_ROUTINES" || k == "REMOTE_SESSIONS_CLOUD_ALL").then(|| "0".to_string()));
         ctx.ps = Box::new(|_| Ok(String::new()));
         let room = LiveRoom::new(ctx, None).with_runners(runner, Box::new(|_, _| Ok(String::new())));
-        assert!(room.routines_on());
+        assert!(!room.routines_on());
         let _ = room.cloud();
-        assert_eq!(*calls.lock().unwrap(), vec!["list", "routines --runs 3"]);
+        assert_eq!(*calls.lock().unwrap(), vec!["list"], "both environment variables at 0: the tracked view without routines");
     }
 
     #[test]
     fn routines_read_as_one_plain_header_line_with_plain_session_rows_under_it() {
         let (room, _) = routines_world();
-        let snap = room.with_routines(true).cloud();
+        let snap = room.cloud();
         let mut st = RoomState::new("");
         st.size = (110, 30);
         st.routines_available = true;
@@ -1380,8 +1570,8 @@ mod tests {
         assert!(frame.contains("R routines"), "the footer offers the toggle:\n{frame}");
     }
 
-    const GOLDEN_LEN: usize = 1740;
-    const GOLDEN_HASH: u64 = 0x7dd120741b0f7679;
+    const GOLDEN_LEN: usize = 1755;
+    const GOLDEN_HASH: u64 = 0x0f6b977dc845a926;
 
     fn golden_drop_view() -> DropView {
         DropView {
@@ -1408,7 +1598,8 @@ mod tests {
     fn the_text_header_drop_in_bytes_are_pinned() {
         let mut out: Vec<u8> = Vec::new();
         draw_drop_at(&golden_drop_view(), &mut out, (100, 30), None);
-        // Recorded from the drawing code as it was before any logo code existed (S391 f4f8c10b).
+        // Recorded from the drawing code as it was before any logo code existed (S391 f4f8c10b); re-pinned in 0.3.2 for
+        // the one change: the footer starts with "live chat  \u{00b7}  " (15 bytes).
         let out = pinned_version(out);
         assert_eq!((out.len(), fnv1a(&out)), (GOLDEN_LEN, GOLDEN_HASH), "len {} hash {:#x}", out.len(), fnv1a(&out));
     }
@@ -1535,5 +1726,206 @@ mod tests {
         assert!(all.contains("your-org/your-repo") && all.contains("session_01Example"));
         assert!(d.answer("x", "y", true).unwrap().starts_with("demo:"));
         assert!(d.drop_in(&Sel::Remote(DEMO_A.into())).unwrap_err().starts_with("demo: would run remote-sessions attach"));
+    }
+
+    // ---- 0.3.2: every account session and the Routines by default; the first run guides ---------------------------
+
+    const BRIDGE_LIVE: &str = "cse_01ExampleBridgeLiveAAAAAA";
+    fn account_json() -> String {
+        serde_json::json!({"ok": true,
+            "tracked": [
+                {"session_id": DEMO_D, "title": "", "repo": "", "started_at": 1_793_865_913u64, "last_seen": null},
+                {"session_id": "cse_01ExampleDDDDDDDDDDDDDDD", "title": "", "repo": "", "started_at": 1_793_865_913u64, "last_seen": null},
+                {"session_id": DEMO_F, "title": "", "repo": "", "started_at": 1_793_865_000u64, "last_seen": null}],
+            "remote": {"data": [
+                {"id": "cse_01ExampleDDDDDDDDDDDDDDD", "title": "Account name D", "status": "active", "environment_kind": "anthropic_cloud", "connection_status": "disconnected", "last_event_at": "2026-11-07T07:20:00Z"},
+                {"id": "cse_01ExampleEEEEEEEEEEEEEEE", "title": "Account name E", "status": "archived", "environment_kind": "bridge", "connection_status": "disconnected", "updated_at": "2026-11-06T02:00:00Z"},
+                {"id": BRIDGE_LIVE, "title": "Live elsewhere", "status": "active", "environment_kind": "bridge", "connection_status": "connected", "worker_status": "running", "last_event_at": "2026-11-07T07:00:00Z"},
+                {"id": "cse_01ExampleCCCCCCCCCCCCCCC", "title": "Served here", "status": "active", "environment_kind": "bridge", "connection_status": "connected", "last_event_at": "2026-11-07T06:00:00Z"}]}})
+        .to_string()
+    }
+    fn account_world() -> (LiveRoom, Arc<Mutex<Vec<String>>>) {
+        let (runner, calls) = calls_runner(|k| match k {
+            "list --unofficial" => Ok(account_json()),
+            "routines --runs 3" => Ok(routines_json()),
+            "list" => Ok(tracked_json(1)),
+            _ => Err(ABSENT.to_string()),
+        });
+        let (room, _) = live(runner);
+        (room, calls)
+    }
+
+    #[test]
+    fn by_default_the_cloud_panel_reads_the_account_list_and_the_routines_with_no_flag() {
+        let (room, calls) = account_world();
+        assert!(room.routines_on());
+        let snap = room.cloud();
+        assert_eq!(*calls.lock().unwrap(), vec!["list --unofficial", "routines --runs 3"], "one account list, one routines call");
+        assert!(snap.rows.iter().any(|r| matches!(r.kind, RowKind::Routine { .. })), "the Routines are shown");
+        let sessions: Vec<(&str, &str)> = snap.rows.iter().filter(|r| r.kind == RowKind::Session).map(|r| (r.id.as_str(), r.title.as_str())).collect();
+        assert_eq!(sessions.iter().filter(|(id, _)| *id == DEMO_D).count(), 1, "tracked twice and in the account list: ONE row {sessions:?}");
+        assert!(sessions.contains(&(DEMO_D, "Account name D")), "with the account's title: {sessions:?}");
+        assert!(sessions.contains(&(DEMO_E, "Account name E")), "an account session that is not tracked here: {sessions:?}");
+        assert!(!sessions.iter().any(|(id, _)| *id == "session_01ExampleBridgeLiveAAAAAA" || *id == DEMO_C), "live Remote Control sessions are in the other panel: {sessions:?}");
+        // the frame: names, no "(untitled)"; a tracked-only session without a title shows its short id
+        let th = sessions_tui::theme::Theme::detect(true, false);
+        let frame = render_once(&room, "h", false, (150, 40), &th, false, 1_794_100_000_000, None);
+        assert!(frame.contains("Account name D") && frame.contains("routine") && frame.contains("Nightly"), "{frame}");
+        assert!(!frame.contains("(untitled)"), "{frame}");
+        assert_eq!(sessions_tui::room::short_id(DEMO_F), "session_01Exampl\u{2026}");
+        assert!(frame.contains("session_01Exampl"), "the short id (the ascii theme draws the ellipsis as ~):\n{frame}");
+    }
+
+    #[test]
+    fn tracked_shows_only_the_sessions_tracked_here_even_when_list_carries_the_account() {
+        // cloud-sessions 0.2.3 may put the account list into `list` itself: --tracked ignores it.
+        let (runner, calls) = calls_runner(|k| match k {
+            "list" => Ok(account_json()),
+            "routines --runs 3" => Ok(routines_json()),
+            _ => Err(ABSENT.to_string()),
+        });
+        let (room, _) = live(runner);
+        let room = room.with_all(true).with_tracked(true);
+        let snap = room.cloud();
+        assert_eq!(*calls.lock().unwrap(), vec!["list", "routines --runs 3"]);
+        let ids: Vec<&str> = snap.rows.iter().filter(|r| r.kind == RowKind::Session).map(|r| r.id.as_str()).collect();
+        assert_eq!(ids, vec![DEMO_D, DEMO_F], "tracked only, the two forms of D as one row");
+        assert_eq!(snap.status, CloudStatus::Ready { tracked: 3 });
+        let remote = room.remote();
+        assert!(remote.rows.iter().all(|r| r.host != ACCOUNT_HOST) && remote.hosts.is_empty(), "--tracked reads no account rows: {remote:?}");
+    }
+
+    #[test]
+    fn cloud_sessions_0_2_3_without_unofficial_still_gives_the_account_list() {
+        let (runner, calls) = calls_runner(|k| match k {
+            "list --unofficial" => Err("Unknown option --unofficial.".into()),
+            "list" => Ok(account_json()),
+            _ => Err(ABSENT.to_string()),
+        });
+        let (room, _) = live(runner);
+        let snap = room.with_no_routines(true).cloud();
+        assert_eq!(*calls.lock().unwrap(), vec!["list --unofficial", "list"]);
+        assert!(snap.rows.iter().any(|r| r.title == "Account name E"), "{:?}", snap.rows);
+        assert!(!snap.rows.iter().any(|r| r.kind == RowKind::Note));
+    }
+
+    #[test]
+    fn first_run_an_empty_account_says_how_to_start_a_session() {
+        let (runner, _) = calls_runner(|k| match k {
+            "list --unofficial" => Ok(serde_json::json!({"ok": true, "tracked": [], "remote": {"data": []}}).to_string()),
+            "routines --runs 3" => Ok(serde_json::json!({"ok": true, "routines": []}).to_string()),
+            _ => Err(ABSENT.to_string()),
+        });
+        let (room, _) = live(runner);
+        let snap = room.cloud();
+        assert_eq!(snap.rows.iter().map(|r| r.title.as_str()).collect::<Vec<_>>(), vec![EMPTY_ACCOUNT]);
+        assert!(EMPTY_ACCOUNT.contains("claude.ai/code") && EMPTY_ACCOUNT.contains("cloud-sessions start"));
+    }
+
+    #[test]
+    fn the_accounts_live_remote_control_sessions_on_other_machines_are_account_rows() {
+        let (room, _) = account_world();
+        let snap = room.remote();
+        let rows: Vec<(&str, &str, Option<u32>)> = snap.rows.iter().map(|r| (r.host.as_str(), r.id.as_str(), r.pid)).collect();
+        assert_eq!(rows, vec![("here", DEMO_C, Some(65579)), (ACCOUNT_HOST, "session_01ExampleBridgeLiveAAAAAA", None)], "the one served here once (by ps), the other as an account row");
+        assert_eq!(snap.hosts, vec!["here".to_string(), ACCOUNT_HOST.to_string()]);
+        assert_eq!(snap.status, RemoteStatus::NoLogin, "no login in tests: state unknown, still listed");
+        // drop in and approve go by session id
+        let (prog, args) = drop_in_command(&Sel::Remote(rows[1].1.to_string()), "/bin/remote-sessions").unwrap();
+        assert_eq!((prog.as_str(), args[0].as_str(), args[1].as_str()), ("/bin/remote-sessions", "attach", "session_01ExampleBridgeLiveAAAAAA"));
+        assert_eq!(live_bridge_ids(&serde_json::from_str(&account_json()).unwrap()), vec!["session_01ExampleBridgeLiveAAAAAA".to_string(), DEMO_C.to_string()], "archived or disconnected bridge sessions are not live");
+    }
+
+    #[test]
+    fn first_run_with_nothing_anywhere_the_room_guides_in_both_panels() {
+        let th = sessions_tui::theme::Theme::detect(true, false);
+        let mut ctx = crate::ctx_from_env();
+        ctx.env = Box::new(|_| None);
+        ctx.token = Box::new(|| Err("no token in tests".into()));
+        ctx.ps = Box::new(|_| Ok(String::new()));
+        // (a) + (d): no cloud-sessions, no Remote Control session, no login
+        let room = LiveRoom::new(ctx, None).with_runners(Box::new(|_, _, _| Err(ABSENT.to_string())), Box::new(|_, _| Ok(String::new())));
+        let snap = room.remote();
+        assert_eq!((snap.rows.len(), &snap.status), (0, &RemoteStatus::Ready), "nothing to read needs no login");
+        let frame = render_once(&room, "h", false, (150, 30), &th, false, 1_794_100_000_000, None);
+        for want in sessions_tui::room::REMOTE_EMPTY.iter().chain([&sessions_tui::room::CLOUD_INSTALL]) {
+            assert!(frame.contains(want.trim()), "missing {want:?}:\n{frame}");
+        }
+        assert!(!frame.contains("no claude.ai login"), "{frame}");
+    }
+
+    #[test]
+    fn enter_says_open_chat_in_the_footer_and_the_selected_panel_for_both_panels() {
+        let th = sessions_tui::theme::Theme::detect(true, false);
+        for sel in [Sel::Remote(DEMO_A.into()), Sel::Cloud(DEMO_D.into())] {
+            let frame = render_once(&DemoRoom, "h", true, (140, 34), &th, false, DEMO_NOW_MS, Some(sel.clone()));
+            assert!(frame.contains("Enter/click open chat"), "footer for {sel:?}:\n{frame}");
+            assert!(frame.contains("Enter open the chat (two-way: type and press Enter to send, Esc back)"), "Selected panel for {sel:?}:\n{frame}");
+            assert!(!frame.contains("watch") && !frame.contains("Enter/click attach"), "no watch, no attach wording for {sel:?}:\n{frame}");
+        }
+        assert_eq!(drop_in_text(&Sel::Cloud(DEMO_D.into())), format!("read only: cloud-sessions watch {DEMO_D}"), "watch is only the read-only fallback");
+    }
+
+    #[test]
+    fn with_cloud_sessions_0_2_3_tracked_lookups_use_list_tracked_not_every_account_page() {
+        // 0.2.3 replies carry "view"; its plain `list` reads every account page. Once seen, lookups use `list --tracked`.
+        let (runner, calls) = calls_runner(|k| match k {
+            "list --unofficial" => Ok(serde_json::json!({"ok": true, "view": "account", "tracked": [], "remote": {"data": [{"id": "cse_01ExampleDDDDDDDDDDDDDDD", "title": "Account name D", "status": "active"}]}}).to_string()),
+            "list --tracked" => Ok(serde_json::json!({"ok": true, "view": "tracked", "tracked": [{"session_id": DEMO_F, "title": "Tracked F", "repo": "", "started_at": 1, "last_seen": null}]}).to_string()),
+            _ => Err(ABSENT.to_string()),
+        });
+        let (room, _) = live(runner);
+        let room = room.with_no_routines(true);
+        let _ = room.cloud();
+        assert_eq!(room.cloud_meta(DEMO_D).0, "Account name D");
+        let room = room.with_tracked(true);
+        let snap = room.cloud();
+        assert_eq!(snap.rows.iter().map(|r| r.title.as_str()).collect::<Vec<_>>(), vec!["Tracked F"]);
+        assert_eq!(room.cloud_meta(DEMO_F).0, "Tracked F");
+        let c = calls.lock().unwrap();
+        assert!(!c.iter().any(|k| k == "list"), "never plain `list` once 0.2.3 is seen: {c:?}");
+        assert_eq!(c.iter().filter(|k| *k == "list --tracked").count(), 2, "{c:?}");
+        drop(c);
+        // 0.2.2 (no "view"): plain `list`, never `list --tracked` (0.2.2 does not know it)
+        let (runner, calls) = calls_runner(|k| if k == "list" { Ok(tracked_json(1)) } else { Err(ABSENT.to_string()) });
+        let (room, _) = live(runner);
+        let room = room.with_tracked(true).with_no_routines(true);
+        let _ = room.cloud();
+        let _ = room.cloud();
+        assert_eq!(*calls.lock().unwrap(), vec!["list", "list"]);
+    }
+
+    #[test]
+    fn when_this_machine_cannot_be_listed_the_account_rows_still_show_under_one_error_row() {
+        let (runner, _) = calls_runner(|k| if k == "list --unofficial" { Ok(account_json()) } else { Err(ABSENT.to_string()) });
+        let mut ctx = crate::ctx_from_env();
+        ctx.env = Box::new(|_| None);
+        ctx.token = Box::new(|| Err("no token in tests".into()));
+        ctx.ps = Box::new(|_| Err("Could not list processes: Operation not permitted".into()));
+        let room = LiveRoom::new(ctx, None).with_runners(runner, Box::new(|_, _| Ok(String::new())));
+        let snap = room.remote();
+        let rows: Vec<(&str, &str)> = snap.rows.iter().map(|r| (r.host.as_str(), r.id.as_str())).collect();
+        assert_eq!(rows, vec![("here", "host:here"), (ACCOUNT_HOST, "session_01ExampleBridgeLiveAAAAAA"), (ACCOUNT_HOST, DEMO_C)], "{snap:?}");
+        assert!(snap.rows[0].is_host_down());
+        // with no account rows the error stays the panel message, as before
+        let mut ctx = crate::ctx_from_env();
+        ctx.env = Box::new(|_| None);
+        ctx.ps = Box::new(|_| Err("Could not list processes".into()));
+        let room = LiveRoom::new(ctx, None).with_runners(Box::new(|_, _, _| Err(ABSENT.to_string())), Box::new(|_, _| Ok(String::new())));
+        assert_eq!(room.remote().status, RemoteStatus::Failed("Could not list processes".into()));
+    }
+
+    #[test]
+    fn a_long_cloud_list_leaves_every_remote_control_row_visible() {
+        let mut st = RoomState::new("");
+        st.size = (150, 50);
+        let remote: Vec<RemoteRow> = [DEMO_A, DEMO_B, DEMO_C].iter().map(|id| RemoteRow { host: ACCOUNT_HOST.into(), id: id.to_string(), pid: None, state: RState::Idle, prompts: vec![] }).collect();
+        let cloud: Vec<CloudRow> = (0..70).map(|i| list_row(format!("session_01Example{i:03}AAAAAAAAAAAA"), &format!("Session {i}"), "", Some(1_000 * i as u64), false, RowKind::Session)).collect();
+        let (st, _) = reduce(st, RoomMsg::Remote(RemoteSnapshot { hosts: vec![], rows: remote, status: RemoteStatus::Ready }));
+        let (st, _) = reduce(st, RoomMsg::Cloud(CloudSnapshot { rows: cloud, status: CloudStatus::Ready { tracked: 70 } }));
+        let frame = render_text(&st, &sessions_tui::theme::Theme::detect(true, false), 150, 50, false);
+        for id in [DEMO_A, DEMO_B, DEMO_C] {
+            assert!(frame.contains(id), "{id} hidden:\n{frame}");
+        }
     }
 }
