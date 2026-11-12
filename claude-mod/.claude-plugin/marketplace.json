@@ -6,7 +6,7 @@
     {
       "name": "remote-sessions",
       "source": "./remote-sessions",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "description": "Serve, list, read, send into and stop Claude Code Remote Control sessions.",
       "author": { "name": "the cloud-sessions contributors" },
       "license": "MIT"

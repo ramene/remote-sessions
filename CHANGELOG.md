@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.1
+
+- Fix: `<command> --help` and `<command> -h` work for every command. Before, `control --help` printed `{"error":"Unknown option --help.","ok":false}` and exited 1, and `control -h` started the room. Now the help of a command shows its usage lines (from the top-level help), its options and, for `control` and `attach`, its keys, and exits 0. The command does not run.
+- New: `help <command>` shows the same text. `help`, `--help` and `-h` show the top-level help, which now has a `help` line. `help <name>` for a name that is not a command is an error (exit 1).
+- Unchanged: an unknown option still fails with `Unknown option --<name>.` (exit 1). A `--help` or `-h` that is the value of an option (`send <session> --message --help`) is text, not a help request.
+- Tests: `tests/help.rs` has one test per command (`--help`, `-h` and `help <command>`: exit 0, the same text, the command name in it), the options and keys of `control`, unknown options, and a check that each option in the usage has a help text.
+- Versions: `remote-sessions-cli`, `remote-sessions-core` and `sessions-tui` are 0.3.1; the plugin is 0.3.1.
+
 ## 0.3.0
 
 - Open source: the control room (`control`) and `attach --tui` are now open, MIT, like the rest of this repo. There is no gate and no paid tier for them; the README has a new "Control room" section with the commands, the keys and four frames (`docs/images`), and `crates/sessions-tui/examples/mock_frames.rs` prints those frames from the real code.

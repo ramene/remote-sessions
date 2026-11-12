@@ -15,6 +15,7 @@ use std::time::Duration;
 
 pub mod attach;
 pub mod control_room;
+pub mod help;
 pub use sessions_tui::logo;
 pub mod tui;
 pub mod stream;

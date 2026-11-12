@@ -1,28 +1,7 @@
 //! `remote-sessions serve|list|send|events|stop|mcp`. JSON on stdout; failures `{"ok":false,"error":...}` with exit 1.
-use remote_sessions_cli::{attach::{attach, attach_auto, LiveOpts}, ctx_from_env, mcp, parse_args, recordings, run, serve_plan, which};
+use remote_sessions_cli::{attach::{attach, attach_auto, LiveOpts}, ctx_from_env, help::{self, USAGE}, mcp, parse_args, recordings, run, serve_plan, which};
 use serde_json::{json, Value};
 use std::io::{stdin, stdout};
-
-const USAGE: &str = "usage: remote-sessions <command>
-  serve  [--name <n>] [--check]                  check eligibility, then run `claude remote-control --name <n>` (--check: only check)
-  list   [--host <ssh-host>]                     local Remote Control workers (found by --sdk-url .../sessions/cse_<id>); over ssh -n with --host
-  send   <session> --message <text|->            send a message (arrives as a PEER message; it cannot approve permissions)
-  events <session> [--after <event id>]          read events (paged; needs a token, or use /remote-read in Claude Code)
-  read   <session> [--after <cursor>]          the conversation as text lines, every page (paged)
-  cast   <session uuid> [--host <h>] [--out <file>] [--idle-max <s>] [--mp4 <file>]   record a session's local transcript as an asciicast v2 file
-  recordings list | start --kind <pane|vm|cloud|rc> --host <h> --session <s> | stop <id>   the fleet's cast recordings (ssh)
-  recordings serve [--bind 127.0.0.1:3790] [--token-file <path>]   HTTP API + web player over the recordings (Bearer token, 0600 file)
-  pending   <session>                            unanswered permission prompts (tool + input); needs a claude.ai login token
-  approve   <session> [--request <id>]           allow the newest pending prompt (or the named one)
-  deny      <session> [--request <id>] [--message <m>]   deny it
-  say       <session> <text|->                   send a real user turn (not a peer message)
-  interrupt <session>                            Esc, not kill
-  mode   <session> <default|acceptEdits|auto|plan|dontAsk|bypassPermissions>   set the permission mode (default = Manual)
-  stream    <session> [--from <seq>] [--for <s>]  live events, one JSON line each as they arrive (events/stream: message by message, not token by token); falls back to polling
-  attach    <session> [--interval 1] [--poll] [--tui [--host <label>] [--no-color] [--ascii]]    terminal client (--tui: full-screen UI): live view (events/stream; polls if it cannot, and says so), sends typed lines, asks Allow? [y/n]; Ctrl-C leaves without stopping
-  stop   <session> --yes [--host <ssh-host>]     one SIGINT to the worker: ENDS the session, the server archives it
-  control [--host <ssh-host>] [--all] [--routines] [--no-color] [--ascii] [--once [--size WxH] [--ansi]] [--demo]   the control room: Remote Control and cloud sessions in two panels; arrows or click to select, Enter or a second click to drop in, a/d approve or deny, s send to a cloud session, q/Esc/click x close. --once prints one frame (--ansi: with colors even when piped); --all also lists the account's own sessions (list --unofficial; also REMOTE_SESSIONS_CLOUD_ALL=1); --routines (or R in the room, or REMOTE_SESSIONS_ROUTINES=1) shows each routine as one plain line with its newest runs under it, off by default; --demo uses placeholder sessions
-  mcp                                            run as an MCP server over stdio";
 
 fn fail(message: &str) -> ! {
     println!("{}", json!({"ok": false, "error": message}));
@@ -33,9 +12,20 @@ fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let Some(command) = args.first().map(String::as_str) else { eprintln!("{USAGE}"); std::process::exit(2) };
     let rest = &args[1..];
+    // Help first: `help [<command>]`, and `<command> --help` or `-h` for every command (never runs the command).
+    match command {
+        "-h" | "--help" => { println!("{USAGE}"); return; }
+        "help" => {
+            match rest.first().map(String::as_str).filter(|a| !matches!(*a, "-h" | "--help")) {
+                None => println!("{USAGE}"),
+                Some(name) => match help::command_help(name) { Some(text) => println!("{text}"), None => fail(&help::unknown_command(name)) },
+            }
+            return;
+        }
+        _ => if help::wants_help(rest) { if let Some(text) = help::command_help(command) { println!("{text}"); return; } },
+    }
     let ctx = ctx_from_env();
     let outcome: Result<Value, String> = match command {
-        "-h" | "--help" | "help" => { println!("{USAGE}"); return; }
         "-V" | "--version" | "version" => { println!("remote-sessions {}", env!("CARGO_PKG_VERSION")); return; }
         "mcp" => {
             if let Err(error) = mcp::serve(&ctx, &mut stdin().lock(), &mut stdout().lock()) { fail(&error.to_string()); }
