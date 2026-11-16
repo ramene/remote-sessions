@@ -1,0 +1,20 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
+  "name": "io.github.ramene/remote-sessions",
+  "description": "Start, read, approve and stop Claude Code Remote Control sessions from an MCP client.",
+  "repository": {
+    "url": "https://github.com/ramene/remote-sessions",
+    "source": "github"
+  },
+  "version": "0.3.2",
+  "packages": [
+    {
+      "registry_type": "oci",
+      "identifier": "ghcr.io/ramene/remote-sessions:0.3.2",
+      "version": "0.3.2",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}
