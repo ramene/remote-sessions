@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.3
+
+- Fix: the Claude Code CLI upgrade stopped exporting $TMUX to plugin command subshells, which broke pane docking; detect the attached tmux client instead. `/remote-room` (`open-room`) found no `$TMUX`, said `split:false` inside tmux, and printed the command. The tmux branch now asks `tmux list-clients` and docks beside the most recently active attached client (not the first one, which may be a worker or deploy pane). The cmux branch is unchanged and still first; the final fallback is unchanged.
+- The tmux split is 45% of the window width (it was 50%).
+- Fix (s576): inside a tmux pane (`$TMUX_PANE` set) the room splits beside THAT pane, the one it was started from. The 0.3.3 first cut ignored `$TMUX_PANE` and split beside the most recently active attached client's session, which could be another window. Without `$TMUX_PANE` the attached-client rule above still applies.
+
 ## 0.3.2
 
 - Fix: the control room shows every account session and the Routines by default (the 0.3.0/0.3.1 /remote-room showed only tracked sessions). Fixes #1. `/remote-room` and `remote-sessions control` now need no flag: when `cloud-sessions` can read your account, the Cloud panel shows every session of your claude.ai account (name, repo, state, age) and the Routines with their newest runs. If the account list fails, the panel shows the sessions tracked on this machine and ONE line that says why and how to fix it (`cloud-sessions auth use-claude-login`). New: `--tracked` (or `REMOTE_SESSIONS_CLOUD_ALL=0`) for the old tracked-only view, `--no-routines` (or `REMOTE_SESSIONS_ROUTINES=0`) to hide the Routines. `--all` and `--routines` are still accepted.

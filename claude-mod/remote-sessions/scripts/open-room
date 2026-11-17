@@ -17,8 +17,17 @@ if { [ -n "${CMUX_SURFACE_ID:-}" ] || [ -n "${CMUX_WORKSPACE_ID:-}" ]; } && comm
   else
     echo '{"split":false,"mux":"cmux","error":"cmux refused the split","run":"remote-sessions control"}'
   fi
-elif [ -n "${TMUX:-}" ] && command -v tmux >/dev/null 2>&1; then
-  if tmux split-window -h -d -l 50% "$room || { echo 'the control room exited - press Enter'; read _; }"; then
+# tmux (s576): when this process runs in a tmux pane ($TMUX_PANE set), the split goes BESIDE THAT PANE (the Claude Code pane).
+# Otherwise (the CLI subshell exports no $TMUX_PANE, s569) the split goes to the most recently active attached client's
+# session, not the first client blindly: another attached client may be a worker or deploy pane.
+elif command -v tmux >/dev/null 2>&1 && { [ -n "${TMUX_PANE:-}" ] || tmux list-clients >/dev/null 2>&1; }; then
+  if [ -n "${TMUX_PANE:-}" ]; then
+    tgt="$TMUX_PANE"
+  else
+    tgt="$(tmux list-clients -F '#{client_activity} #{client_session}' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)"
+    [ -n "$tgt" ] && tgt="$tgt:"
+  fi
+  if tmux split-window -h -d -l 45% ${tgt:+-t "$tgt"} "$room || { echo 'the control room exited - press Enter'; read _; }"; then
     echo '{"split":true,"mux":"tmux","room":"control","close":"press q, Esc or the x in the room"}'
   else
     echo '{"split":false,"mux":"tmux","error":"tmux refused the split","run":"remote-sessions control"}'

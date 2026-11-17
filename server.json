@@ -6,12 +6,12 @@
     "url": "https://github.com/ramene/remote-sessions",
     "source": "github"
   },
-  "version": "0.3.2",
+  "version": "0.3.3",
   "packages": [
     {
       "registry_type": "oci",
-      "identifier": "ghcr.io/ramene/remote-sessions:0.3.2",
-      "version": "0.3.2",
+      "identifier": "ghcr.io/ramene/remote-sessions:0.3.3",
+      "version": "0.3.3",
       "transport": {
         "type": "stdio"
       }
