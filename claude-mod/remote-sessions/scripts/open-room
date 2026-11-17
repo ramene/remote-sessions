@@ -27,7 +27,18 @@ elif command -v tmux >/dev/null 2>&1 && { [ -n "${TMUX_PANE:-}" ] || tmux list-c
     tgt="$(tmux list-clients -F '#{client_activity} #{client_session}' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)"
     [ -n "$tgt" ] && tgt="$tgt:"
   fi
-  if tmux split-window -h -d -l 45% ${tgt:+-t "$tgt"} "$room || { echo 'the control room exited - press Enter'; read _; }"; then
+  # s576: the right column is the one that holds the room or the operator deck already. When it has a pane, this one
+  # goes UNDER its top pane (two stacked panes on the right, never a third column); else it splits beside the target.
+  geo="$(tmux list-panes -t "${tgt:-}" -F '#{pane_left} #{pane_top} #{pane_id}' 2>/dev/null | sort -k1,1nr -k2,2n | head -1)"
+  rl="$(printf '%s' "$geo" | cut -d' ' -f1)"
+  rid="$(printf '%s' "$geo" | cut -d' ' -f3)"
+  cmd="$room || { echo 'the control room exited - press Enter'; read _; }"
+  if [ -n "$rid" ] && [ "${rl:-0}" -gt 0 ]; then
+    split_ok=0; tmux split-window -v -d -t "$rid" "$cmd" && split_ok=1
+  else
+    split_ok=0; if [ -n "${tgt:-}" ]; then tmux split-window -h -d -l 45% -t "$tgt" "$cmd" && split_ok=1; else tmux split-window -h -d -l 45% "$cmd" && split_ok=1; fi
+  fi
+  if [ "$split_ok" = 1 ]; then
     echo '{"split":true,"mux":"tmux","room":"control","close":"press q, Esc or the x in the room"}'
   else
     echo '{"split":false,"mux":"tmux","error":"tmux refused the split","run":"remote-sessions control"}'

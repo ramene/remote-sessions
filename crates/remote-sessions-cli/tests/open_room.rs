@@ -106,6 +106,38 @@ fn inside_a_tmux_pane_the_split_goes_beside_that_pane_not_the_client() {
     assert!(!tmux.contains("worker:"), "{tmux}");
 }
 
+/// A tmux stub that also answers `list-panes` with the given `left top id` lines.
+fn tmux_stub_with_panes(dir: &Path, panes: &[&str]) {
+    let mut tail = String::from("case \"$1\" in\n  list-panes)\n");
+    for pane in panes {
+        tail.push_str(&format!("    echo '{pane}'\n"));
+    }
+    tail.push_str("    exit 0 ;;\n  split-window) exit 0 ;;\n  *) exit 0 ;;\nesac");
+    write_stub(dir, "tmux", &tail);
+}
+
+#[test]
+fn with_a_pane_already_on_the_right_the_room_stacks_under_it() {
+    // s576: the deck (or an earlier room) holds the right column (left 44); the room splits its top pane downward
+    let dir = stubs("tmux-stack", &[]);
+    tmux_stub_with_panes(&dir, &["0 1 %1", "44 1 %2", "44 20 %3"]);
+    let out = run(&dir, &[("TMUX_PANE", "%1")], &[]);
+    assert!(out.contains(r#""split":true"#), "{out}");
+    let tmux = log(&dir, "tmux").expect("tmux was asked");
+    assert!(tmux.contains("split-window -v -d -t %2 "), "under the topmost right pane: {tmux}");
+    assert!(!tmux.contains("split-window -h"), "no third column: {tmux}");
+}
+
+#[test]
+fn with_one_pane_and_no_right_column_the_room_splits_beside_the_target() {
+    let dir = stubs("tmux-beside", &[]);
+    tmux_stub_with_panes(&dir, &["0 1 %1"]);
+    let out = run(&dir, &[("TMUX_PANE", "%1")], &[]);
+    assert!(out.contains(r#""split":true"#), "{out}");
+    let tmux = log(&dir, "tmux").expect("tmux was asked");
+    assert!(tmux.contains("split-window -h -d -l 45% -t %1 "), "{tmux}");
+}
+
 #[test]
 fn cmux_variables_without_a_cmux_binary_use_tmux() {
     let dir = stubs("tmux-nocmux", &[]);
