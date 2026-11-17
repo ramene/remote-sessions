@@ -6,6 +6,8 @@ COPY . .
 RUN cargo build --release --locked -p remote-sessions-cli
 
 FROM debian:stable-slim
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=build /src/target/release/remote-sessions /usr/local/bin/remote-sessions
+LABEL io.modelcontextprotocol.server.name="io.github.ramene/remote-sessions"
+LABEL org.opencontainers.image.source="https://github.com/ramene/remote-sessions"
 ENTRYPOINT ["remote-sessions", "mcp"]

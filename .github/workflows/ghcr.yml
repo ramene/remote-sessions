@@ -1,0 +1,32 @@
+# Publish the MCP server image named in server.json, so registries and scanners can pull it instead of compiling Rust.
+name: ghcr image
+on:
+  push:
+    tags: ["remote-sessions-v*"]
+  workflow_dispatch:
+permissions:
+  contents: read
+  packages: write
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: version from server.json
+        id: v
+        run: echo "version=$(jq -r .version server.json)" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/ramene/remote-sessions:${{ steps.v.outputs.version }}
+            ghcr.io/ramene/remote-sessions:latest

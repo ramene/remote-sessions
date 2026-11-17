@@ -5,6 +5,9 @@
 - Fix: the Claude Code CLI upgrade stopped exporting $TMUX to plugin command subshells, which broke pane docking; detect the attached tmux client instead. `/remote-room` (`open-room`) found no `$TMUX`, said `split:false` inside tmux, and printed the command. The tmux branch now asks `tmux list-clients` and docks beside the most recently active attached client (not the first one, which may be a worker or deploy pane). The cmux branch is unchanged and still first; the final fallback is unchanged.
 - The tmux split is 45% of the window width (it was 50%).
 - Fix (s576): inside a tmux pane (`$TMUX_PANE` set) the room splits beside THAT pane, the one it was started from. The 0.3.3 first cut ignored `$TMUX_PANE` and split beside the most recently active attached client's session, which could be another window. Without `$TMUX_PANE` the attached-client rule above still applies.
+- Fix (s576): when a right column already holds a pane (the operator deck, or an earlier room), the room stacks under its top pane, so two panes stack on the right and no third column is added.
+- Already on main, now in this release: the s554 clean-start commits (`crates/remote-sessions-cli/tests/clean_env.rs`: a clean start lists every tool with all four hints) and the s554 Dockerfile and server.json entry for MCP registries.
+- New (s576 addendum): the MCP registry image. `server.json` moves to the 2025-12-11 schema (`registryType`; the obsolete package `version` is dropped), its image is `ghcr.io/ramene/remote-sessions:0.3.3`. The Dockerfile copies the CA bundle from its build stage (no apt step in the runtime image) and carries the labels `io.modelcontextprotocol.server.name` and `org.opencontainers.image.source`. New `.github/workflows/ghcr.yml` publishes that image (`:0.3.3` and `:latest`) when a `remote-sessions-v*` tag is pushed. `server.json` validates against the 2025-12-11 schema with 0 errors.
 
 ## 0.3.2
 
