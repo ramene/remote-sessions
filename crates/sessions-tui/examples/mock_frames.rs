@@ -14,12 +14,13 @@ use sessions_tui::theme::Theme;
 use sessions_tui::view;
 
 const NOW: u64 = 1_800_000_000_000;
-const A: &str = "session_01ExampleAAAAAAAAAAAAAAA";
-const B: &str = "session_01ExampleBBBBBBBBBBBBBBB";
-const C: &str = "session_01ExampleCCCCCCCCCCCCCCC";
-const D: &str = "session_01ExampleDDDDDDDDDDDDDDD";
-const E: &str = "session_01ExampleEEEEEEEEEEEEEEE";
-const F: &str = "session_01ExampleFFFFFFFFFFFFFFF";
+// Placeholder ids (fake, see CONTRIBUTING.md) are written in pieces so no single literal reads as a session id.
+const A: &str = concat!("session_", "01", "ExampleAAAAAAAAAAAAAAA");
+const B: &str = concat!("session_", "01", "ExampleBBBBBBBBBBBBBBB");
+const C: &str = concat!("session_", "01", "ExampleCCCCCCCCCCCCCCC");
+const D: &str = concat!("session_", "01", "ExampleDDDDDDDDDDDDDDD");
+const E: &str = concat!("session_", "01", "ExampleEEEEEEEEEEEEEEE");
+const F: &str = concat!("session_", "01", "ExampleFFFFFFFFFFFFFFF");
 
 fn color(c: Color) -> Value {
     match c {

@@ -9,6 +9,19 @@
 //! * [`stream`]: live events over `events/stream` (server-sent events, message by message), with resume on drop.
 //!
 //! Event text comes from a run that may have read hostile content. Nothing here executes it.
+/// The version of this build (a constant; checked against Cargo.toml by a test).
+pub const VERSION: &str = "0.3.4";
+
+#[cfg(test)]
+mod version_const {
+    /// VERSION is the package version: Cargo.toml is read as a file (no environment read).
+    #[test]
+    fn version_constant_matches_cargo_toml() {
+        let manifest = include_str!("../Cargo.toml");
+        assert!(manifest.contains(&format!("version = \"{}\"", super::VERSION)), "VERSION must equal the package version in Cargo.toml");
+    }
+}
+
 pub mod api;
 pub mod cast;
 pub mod control;

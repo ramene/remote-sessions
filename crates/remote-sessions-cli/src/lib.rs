@@ -13,6 +13,9 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+/// The version of this build. A constant (not an environment read); a test checks it against Cargo.toml.
+pub const VERSION: &str = "0.3.4";
+
 pub mod attach;
 pub mod control_room;
 pub mod help;
@@ -426,6 +429,16 @@ fn stop(ctx: &Ctx, args: &Args) -> Result<Value> {
 }
 
 #[cfg(test)]
+#[cfg(test)]
+mod version_const {
+    /// The constant is the package version: Cargo.toml is read as a file (no environment read).
+    #[test]
+    fn version_constant_matches_cargo_toml() {
+        let manifest = include_str!("../Cargo.toml");
+        assert!(manifest.contains(&format!("version = \"{}\"", super::VERSION)), "VERSION must equal the package version in Cargo.toml");
+    }
+}
+
 mod tests {
     use super::*;
     use std::sync::{Arc, Mutex};

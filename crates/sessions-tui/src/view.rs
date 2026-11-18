@@ -593,7 +593,7 @@ fn draw_band(f: &mut Frame, s: &State, th: &Theme, w: u16) {
     let dot = th.notice_glyph();
     at(0, Line::from(vec![
         sp("remote-sessions", th.bold()),
-        sp(format!(" v{}  ", env!("CARGO_PKG_VERSION")), th.dim()),
+        sp(format!(" v{}  ", crate::VERSION), th.dim()),
         sp(truncate(&format!("{dot} inside a Remote Control session"), room.saturating_sub(24)), th.accent()),
     ]));
     let place = if s.host.is_empty() { clean(&s.name, 120) } else { format!("{}  {dot}  {}", clean(&s.name, 120), clean(&s.host, 60)) };

@@ -472,7 +472,7 @@ fn draw_drop_at(v: &DropView, out: &mut impl std::io::Write, size: (usize, usize
         format!("{TEAL} \u{259d}\u{2580}\u{2580}\u{2580}\u{2598}{RS}"),
     ];
     let texts = [
-        format!("{BOLD}remote-sessions{RS} {DIM}v{}{RS}  {GOLD}\u{00b7} {}{RS}", env!("CARGO_PKG_VERSION"), v.label),
+        format!("{BOLD}remote-sessions{RS} {DIM}v{}{RS}  {GOLD}\u{00b7} {}{RS}", crate::VERSION, v.label),
         fit(if place.is_empty() { "cloud session" } else { &place }, info),
         format!("{DIM}{}{RS}", fit(&v.info, info)),
     ];
@@ -1588,7 +1588,7 @@ mod tests {
     }
     /// The pinned bytes were recorded at version 0.2.2; the header carries the crate version, so it is put back first.
     fn pinned_version(out: Vec<u8>) -> Vec<u8> {
-        String::from_utf8(out).unwrap().replace(&format!("v{}", env!("CARGO_PKG_VERSION")), "v0.2.2").into_bytes()
+        String::from_utf8(out).unwrap().replace(&format!("v{}", crate::VERSION), "v0.2.2").into_bytes()
     }
     fn fnv1a(bytes: &[u8]) -> u64 {
         bytes.iter().fold(0xcbf29ce484222325u64, |h, b| (h ^ *b as u64).wrapping_mul(0x100000001b3))

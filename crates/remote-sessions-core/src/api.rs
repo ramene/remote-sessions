@@ -82,7 +82,7 @@ impl Client {
     fn get_json(&self, path: &str) -> Result<Value> { self.request("GET", path, None) }
     /// One HTTPS call: no redirects, bounded body, the credential only in the Authorization header.
     pub(crate) fn request(&self, method: &str, path: &str, body: Option<&Value>) -> Result<Value> {
-        let mut builder = ureq::AgentBuilder::new().redirects(0).timeout_connect(Duration::from_secs(10)).timeout(Duration::from_secs(60)).user_agent(concat!("remote-sessions-core/", env!("CARGO_PKG_VERSION")));
+        let mut builder = ureq::AgentBuilder::new().redirects(0).timeout_connect(Duration::from_secs(10)).timeout(Duration::from_secs(60)).user_agent(&format!("remote-sessions-core/{}", crate::VERSION));
         if !loopback(&self.base) { builder = builder.try_proxy_from_env(true); }
         let mut request = builder.build().request(method, &format!("{}{path}", self.base)).set("Authorization", &format!("Bearer {}", self.token)).set("anthropic-version", "2023-06-01").set("anthropic-client-platform", "cli");
         if let Some(beta) = &self.beta { request = request.set("anthropic-beta", beta); }
@@ -104,7 +104,7 @@ impl Client {
     pub fn open_stream(&self, session: &str, from: Option<u64>, read_timeout: Duration) -> std::result::Result<(String, Box<dyn Read + Send>), (bool, String)> {
         let mut last = (false, String::new());
         for id in crate::control::candidates(session).map_err(|e| (true, e))? {
-            let mut builder = ureq::AgentBuilder::new().redirects(0).timeout_connect(Duration::from_secs(10)).timeout_read(read_timeout).user_agent(concat!("remote-sessions-core/", env!("CARGO_PKG_VERSION")));
+            let mut builder = ureq::AgentBuilder::new().redirects(0).timeout_connect(Duration::from_secs(10)).timeout_read(read_timeout).user_agent(&format!("remote-sessions-core/{}", crate::VERSION));
             if !loopback(&self.base) { builder = builder.try_proxy_from_env(true); }
             let query = from.map(|n| format!("?from_sequence_num={n}")).unwrap_or_default();
             let mut request = builder.build().get(&format!("{}/v1/code/sessions/{id}/events/stream{query}", self.base)).set("Authorization", &format!("Bearer {}", self.token)).set("anthropic-version", "2023-06-01").set("anthropic-client-platform", "cli").set("Accept", "text/event-stream");

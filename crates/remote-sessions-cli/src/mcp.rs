@@ -120,7 +120,7 @@ pub fn handle(ctx: &Ctx, message: &Value) -> Option<Value> {
     let id = message.get("id")?.clone();
     let reply = |result: Value| Some(json!({"jsonrpc": "2.0", "id": id, "result": result}));
     match message["method"].as_str().unwrap_or("") {
-        "initialize" => reply(json!({"protocolVersion": message["params"]["protocolVersion"].as_str().unwrap_or("2024-11-05"), "capabilities": {"tools": {}}, "serverInfo": {"name": "remote-sessions", "version": env!("CARGO_PKG_VERSION")}})),
+        "initialize" => reply(json!({"protocolVersion": message["params"]["protocolVersion"].as_str().unwrap_or("2024-11-05"), "capabilities": {"tools": {}}, "serverInfo": {"name": "remote-sessions", "version": crate::VERSION}})),
         "ping" => reply(json!({})),
         "tools/list" => reply(json!({"tools": tools()})),
         "tools/call" => {

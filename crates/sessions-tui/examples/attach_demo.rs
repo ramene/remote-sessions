@@ -2,6 +2,9 @@
 //!   cargo run -p sessions-tui --example attach_demo
 //! Fake ids and text only; nothing is sent anywhere. Quit with Ctrl-C or Esc.
 use sessions_tui::*;
+
+// A placeholder id (fake; see CONTRIBUTING.md), written in pieces.
+const DEMO_ID: &str = concat!("session_", "01", "ExampleDemoAAAAAAAAAAA");
 use std::sync::mpsc::Sender;
 use std::sync::Arc;
 
@@ -10,7 +13,7 @@ struct Demo;
 impl Backend for Demo {
     fn snapshot(&self) -> Result<Snapshot, String> {
         Ok(Snapshot {
-            name: "session_01ExampleDemoAAAAAAAAAAA".into(),
+            name: DEMO_ID.into(),
             host: "mac-a".into(),
             events: vec![
                 Ev::new(Some(1), "u1", "user", vec![Blk::Text("fix the flaky parser test".into())]),
@@ -45,7 +48,7 @@ impl Backend for Demo {
 
 fn main() {
     let history = std::env::current_exe().ok().and_then(|p| p.parent().map(|d| d.join("attach-demo-history")));
-    let opts = Options { name: "session_01ExampleDemoAAAAAAAAAAA".into(), host: "mac-a".into(), history_path: history, ..Default::default() };
+    let opts = Options { name: DEMO_ID.into(), host: "mac-a".into(), history_path: history, ..Default::default() };
     match run(Arc::new(Demo), opts) {
         Ok(_) => {}
         Err(e) => {

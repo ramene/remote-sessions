@@ -26,7 +26,7 @@ fn main() {
     }
     let ctx = ctx_from_env();
     let outcome: Result<Value, String> = match command {
-        "-V" | "--version" | "version" => { println!("remote-sessions {}", env!("CARGO_PKG_VERSION")); return; }
+        "-V" | "--version" | "version" => { println!("remote-sessions {}", remote_sessions_cli::VERSION); return; }
         "mcp" => {
             if let Err(error) = mcp::serve(&ctx, &mut stdin().lock(), &mut stdout().lock()) { fail(&error.to_string()); }
             return;
