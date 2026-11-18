@@ -13,7 +13,7 @@ categories = ["command-line-interface", "development-tools"]
 [dependencies]
 ratatui = "0.29"
 crossterm = "0.28"
-signal-hook = "0.3"
+signal-hook = "0.4"
 serde_json = "1"
 unicode-width = "0.2"
 # Rasterizes the optional logo SVG: no text, no raster images, no system fonts (vector paths only).
