@@ -22,6 +22,35 @@ jobs:
       - name: version from server.json
         id: v
         run: echo "version=$(jq -r .version server.json)" >> "$GITHUB_OUTPUT"
+      - name: build the image locally for the stranger test
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          load: true
+          push: false
+          tags: local/remote-sessions:test
+      - name: stranger test - the image answers over stdio with no argument
+        run: |
+          printf '%s\n' \
+            '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}' \
+            '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
+            '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' > req.txt
+          docker run --rm -i local/remote-sessions:test < req.txt > out.txt
+          python3 - <<'PYCHECK'
+          import json
+          lines = [json.loads(l) for l in open("out.txt") if l.strip()]
+          assert len(lines) == 2, f"expected 2 answers, got {len(lines)}"
+          assert lines[0]["result"]["protocolVersion"], "no initialize answer"
+          tools = lines[1]["result"]["tools"]
+          assert len(tools) > 0, "no tools listed"
+          for t in tools:
+              a = t.get("annotations", {})
+              for k in ("readOnlyHint", "destructiveHint", "idempotentHint", "openWorldHint"):
+                  assert isinstance(a.get(k), bool), f"{t['name']} lacks {k}"
+              assert t.get("title"), f"{t['name']} lacks a title"
+          print(f"stranger test ok: {len(tools)} tools, all hints")
+          PYCHECK
       - uses: docker/build-push-action@v6
         with:
           context: .
