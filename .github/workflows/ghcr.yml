@@ -23,7 +23,7 @@ jobs:
         id: v
         run: echo "version=$(jq -r .version server.json)" >> "$GITHUB_OUTPUT"
       - name: build the image locally for the stranger test
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           platforms: linux/amd64
@@ -51,7 +51,7 @@ jobs:
               assert t.get("title"), f"{t['name']} lacks a title"
           print(f"stranger test ok: {len(tools)} tools, all hints")
           PYCHECK
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: .
           platforms: linux/amd64,linux/arm64
