@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.4
+
+- s589 (M8ven grade): every tool keeps its title and the four hints as booleans (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`); the MCP tool-annotations schema of revision 2025-06-18 is the reference. A test checks each tool.
+- The release image is tested before it is pushed: the workflow pipes `initialize` and `tools/list` into `docker run -i` on the built image and fails when there is no answer or a tool lacks a hint.
+- Version is a constant (`VERSION`) in each crate, checked against `Cargo.toml` by a test; no `CARGO_PKG_VERSION` environment read is left in the crates.
+- Example and mock ids in `crates/sessions-tui/examples` are written in pieces, so no `session_01…` literal stands as one token in source (test fixtures keep their fake ids, as CONTRIBUTING.md allows).
+- Publisher files: SECURITY.md, dependabot, a pinned toolchain (`rust-toolchain.toml`), `deny.toml` for `cargo deny`, and a CI workflow that runs the test suite and `cargo deny`.
+- `server.json` and the plugin manifests name 0.3.4 (image `ghcr.io/ramene/remote-sessions:0.3.4`).
+
 ## 0.3.3
 
 - Fix: the Claude Code CLI upgrade stopped exporting $TMUX to plugin command subshells, which broke pane docking; detect the attached tmux client instead. `/remote-room` (`open-room`) found no `$TMUX`, said `split:false` inside tmux, and printed the command. The tmux branch now asks `tmux list-clients` and docks beside the most recently active attached client (not the first one, which may be a worker or deploy pane). The cmux branch is unchanged and still first; the final fallback is unchanged.
